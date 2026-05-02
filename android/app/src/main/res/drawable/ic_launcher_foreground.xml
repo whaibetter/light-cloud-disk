@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 云朵主体 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,58 C32,58 28,58 28,54 C28,50 32,48 36,48 C36,42 42,36 50,36 C58,36 64,42 64,48 C64,48 66,44 72,46 C78,48 78,54 74,56 C76,58 76,62 72,64 C68,66 64,64 62,62 C58,66 52,68 46,66 C40,64 36,60 36,58 C34,60 32,60 32,58 Z"/>
+    <!-- 上传箭头 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,74 L50,56 M42,62 L50,54 L58,62"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFF"/>
+</vector>

@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">轻量云盘</string>
+    
+    <!-- 界面文本 -->
+    <string name="title_activity_main">轻量云盘</string>
+    <string name="empty_state_title">暂无文件</string>
+    <string name="empty_state_hint">点击右下角按钮上传文件</string>
+    
+    <!-- 按钮文本 -->
+    <string name="button_upload">上传文件</string>
+    
+    <!-- 通知 -->
+    <string name="notification_channel_name">文件上传</string>
+    <string name="notification_channel_description">显示文件上传进度</string>
+    <string name="notification_uploading">正在上传...</string>
+    <string name="notification_upload_success">上传成功</string>
+    <string name="notification_upload_failed">上传失败</string>
+    
+    <!-- 错误信息 -->
+    <string name="error_network">网络错误，请检查连接</string>
+    <string name="error_permission">需要存储权限来上传文件</string>
+    <string name="error_file_not_found">文件未找到</string>
+</resources>

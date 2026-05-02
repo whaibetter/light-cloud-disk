@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻量云盘 - Light Cloud Disk</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☁️</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">☁️</span>
+                <h1>轻量云盘</h1>
+            </div>
+            <div class="header-actions">
+                <button id="themeToggle" class="btn-icon" title="切换主题">🌙</button>
+                <button id="configBtn" class="btn-secondary">配置</button>
+                <button id="refreshBtn" class="btn-primary">刷新</button>
+            </div>
+        </header>
+
+        <!-- Config Modal -->
+        <div id="configModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>配置设置</h2>
+                <form id="configForm">
+                    <div class="form-group">
+                        <label for="serverUrl">服务器地址</label>
+                        <input type="url" id="serverUrl" placeholder="http://localhost:3000" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="apiKey">API密钥</label>
+                        <input type="password" id="apiKey" placeholder="输入API密钥" required>
+                    </div>
+                    <button type="submit" class="btn-primary">保存配置</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="upload-section">
+            <div id="dropArea" class="drop-area">
+                <div class="drop-icon">📁</div>
+                <p>拖放文件到此处，或</p>
+                <label for="fileInput" class="btn-primary">选择文件</label>
+                <input type="file" id="fileInput" multiple hidden>
+                <p class="hint">支持多文件上传，单个文件最大100MB</p>
+            </div>
+            <div id="uploadProgress" class="upload-progress" style="display: none;">
+                <div class="progress-header">
+                    <span>上传进度</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Files Section -->
+        <div class="files-section">
+            <div class="section-header">
+                <h2>文件列表 <span id="fileCount" class="badge">0</span></h2>
+                <div class="view-toggle">
+                    <button id="gridView" class="view-btn active" title="网格视图">⊞</button>
+                    <button id="listView" class="view-btn" title="列表视图">☰</button>
+                </div>
+            </div>
+            
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>加载中...</p>
+            </div>
+
+            <div id="emptyState" class="empty-state">
+                <div class="empty-icon">📭</div>
+                <p>暂无文件</p>
+                <p class="hint">上传你的第一个文件吧！</p>
+            </div>
+
+            <div id="filesGrid" class="files-grid"></div>
+            <div id="filesList" class="files-list" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
