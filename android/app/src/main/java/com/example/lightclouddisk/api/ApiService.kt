@@ -8,27 +8,27 @@ import retrofit2.http.*
 interface ApiService {
     // 上传文件
     @Multipart
-    @POST("/api/upload")
+    @POST("api/upload")
     suspend fun uploadFiles(
         @Header("X-API-Key") apiKey: String,
         @Part files: List<MultipartBody.Part>
     ): Response<UploadResponse>
 
     // 获取文件列表
-    @GET("/api/files")
+    @GET("api/files")
     suspend fun getFiles(
         @Header("X-API-Key") apiKey: String
     ): Response<FilesResponse>
 
     // 删除文件
-    @DELETE("/api/files/{filename}")
+    @DELETE("api/files/{filename}")
     suspend fun deleteFile(
         @Header("X-API-Key") apiKey: String,
         @Path("filename") filename: String
     ): Response<DeleteResponse>
 
     // 下载文件（使用流式响应）
-    @GET("/api/download/{filename}")
+    @GET("api/download/{filename}")
     suspend fun downloadFile(
         @Header("X-API-Key") apiKey: String,
         @Path("filename") filename: String

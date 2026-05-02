@@ -54,6 +54,12 @@
             </intent-filter>
         </activity>
 
+        <!-- 设置页面 -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="设置" />
+
         <!-- 文件上传服务 -->
         <service
             android:name=".FileUploadService"
