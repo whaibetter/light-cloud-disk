@@ -10,7 +10,7 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
+        android:theme="@style/Theme.LightCloudDisk">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -30,7 +30,7 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <!-- 搜索框 -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
@@ -45,7 +45,7 @@
                 android:iconifiedByDefault="false"
                 android:background="@android:color/white" />
 
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- 文件列表区域 -->
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout

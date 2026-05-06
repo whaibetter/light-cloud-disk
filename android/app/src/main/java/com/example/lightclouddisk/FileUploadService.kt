@@ -36,21 +36,30 @@ class FileUploadService : Service() {
     private lateinit var apiService: ApiService
     private lateinit var notificationManager: NotificationManager
     private lateinit var notificationBuilder: NotificationCompat.Builder
+    private var isForegroundStarted = false
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        createNotificationChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_UPLOAD) {
             val filePath = intent.getStringExtra(EXTRA_FILE_PATH)
-            val serverUrl = intent.getStringExtra(EXTRA_SERVER_URL) ?: BuildConfig.DEFAULT_SERVER_URL
-            val apiKey = intent.getStringExtra(EXTRA_API_KEY) ?: BuildConfig.DEFAULT_API_KEY
+            val serverUrl = intent.getStringExtra(EXTRA_SERVER_URL)
+                ?: try { BuildConfig.DEFAULT_SERVER_URL } catch (e: Exception) { "http://117.72.196.45/syncqclous/" }
+            val apiKey = intent.getStringExtra(EXTRA_API_KEY)
+                ?: try { BuildConfig.DEFAULT_API_KEY } catch (e: Exception) { "light-cloud-disk-2026" }
 
             if (filePath != null) {
-                startForeground(NOTIFICATION_ID, createNotification("准备上传...", 0))
+                val notification = createNotification("准备上传...", 0)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+                isForegroundStarted = true
                 uploadFile(filePath, serverUrl, apiKey)
             }
         }
@@ -150,7 +159,9 @@ class FileUploadService : Service() {
     }
 
     override fun onDestroy() {
+        if (isForegroundStarted) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        }
         super.onDestroy()
-        stopForeground(STOP_FOREGROUND_REMOVE)
     }
 }

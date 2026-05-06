@@ -17,6 +17,7 @@ local.properties
 .idea/
 .externalNativeBuild/
 .cxx/
+keystore.properties
 
 # Web
 node_modules/
@@ -27,6 +28,9 @@ dist/
 uploads/
 *.log
 .env
+
+# Config files with secrets
+config.json
 
 # OS
 Thumbs.db

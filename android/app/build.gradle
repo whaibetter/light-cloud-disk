@@ -3,6 +3,26 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def configPropertiesFile = rootProject.file('../config.json')
+def serverUrl = "http://117.72.196.45/syncqclous/"
+def apiKey = "light-cloud-disk-2026"
+
+if (configPropertiesFile.exists()) {
+    try {
+        def config = new groovy.json.JsonSlurper().parseText(configPropertiesFile.text)
+        serverUrl = config.android.default_server_url
+        apiKey = config.android.default_api_key
+    } catch (Exception e) {
+        println "Warning: Failed to load config.json, using default values"
+    }
+}
+
 android {
     namespace 'com.example.lightclouddisk'
     compileSdk 34
@@ -14,17 +34,18 @@ android {
         versionCode 1
         versionName "1.0"
 
-        // 配置服务器地址和API密钥
-        buildConfigField "String", "DEFAULT_SERVER_URL", "\"http://117.72.196.45/syncqclous/\""
-        buildConfigField "String", "DEFAULT_API_KEY", "\"light-cloud-disk-2026\""
+        buildConfigField "String", "DEFAULT_SERVER_URL", "\"${serverUrl}\""
+        buildConfigField "String", "DEFAULT_API_KEY", "\"${apiKey}\""
     }
 
     signingConfigs {
         release {
-            storeFile file("release-key.jks")
-            storePassword "lightcloud123"
-            keyAlias "lightclouddisk"
-            keyPassword "lightcloud123"
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
         }
     }
 
@@ -32,11 +53,13 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
-            buildConfigField "String", "DEFAULT_SERVER_URL", "\"http://117.72.196.45/syncqclous/\""
-            buildConfigField "String", "DEFAULT_API_KEY", "\"light-cloud-disk-2026\""
+            buildConfigField "String", "DEFAULT_SERVER_URL", "\"${serverUrl}\""
+            buildConfigField "String", "DEFAULT_API_KEY", "\"${apiKey}\""
         }
     }
 

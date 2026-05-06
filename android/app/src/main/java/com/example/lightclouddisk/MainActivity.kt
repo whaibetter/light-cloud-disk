@@ -78,31 +78,42 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 初始化配置管理器
-        ConfigManager.init(this)
+        try {
+            // 初始化配置管理器
+            ConfigManager.init(this)
 
-        // 使用 ViewBinding
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+            // 使用 ViewBinding
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        setupToolbar()
-        setupRecyclerView()
-        setupApiService()
-        setupClickListeners()
-        setupSearchView()
-        loadFiles()
+            setupToolbar()
+            setupRecyclerView()
+            setupApiService()
+            setupClickListeners()
+            setupSearchView()
+            loadFiles()
 
-        // 处理分享意图
-        handleIntent(intent)
+            // 处理分享意图
+            handleIntent(intent)
 
-        // 注册下载完成广播
-        registerReceiver(downloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+            // 注册下载完成广播
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(downloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(downloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "App initialization failed", e)
+            Toast.makeText(this, "应用初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
+            finish()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        // 配置可能已更改，重新创建 ApiService
-        setupApiService()
+        if (::binding.isInitialized) {
+            setupApiService()
+        }
     }
 
     override fun onDestroy() {

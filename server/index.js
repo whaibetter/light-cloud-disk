@@ -7,10 +7,22 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.API_KEY || 'light-cloud-disk-2026';
-const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
-const MAX_FILE_SIZE = (process.env.MAX_FILE_SIZE || 100) * 1024 * 1024; // 转换为字节
+
+let config = {};
+const configPath = path.join(__dirname, '..', 'config.json');
+if (fs.existsSync(configPath)) {
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    console.log('✅ Loaded configuration from config.json');
+  } catch (error) {
+    console.warn('⚠️  Failed to load config.json, using environment variables');
+  }
+}
+
+const PORT = process.env.PORT || config.server?.port || 3000;
+const API_KEY = process.env.API_KEY || config.server?.api_key || 'light-cloud-disk-2026';
+const UPLOAD_DIR = process.env.UPLOAD_DIR || config.server?.upload_dir || './uploads';
+const MAX_FILE_SIZE = (process.env.MAX_FILE_SIZE || config.server?.max_file_size || 100) * 1024 * 1024;
 
 // 确保上传目录存在
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -29,7 +41,7 @@ if (!fs.existsSync(FILES_DB)) {
 
 // CORS配置
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || config.server?.allowed_origins || '*',
   credentials: true
 };
 app.use(cors(corsOptions));

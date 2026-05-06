@@ -15,28 +15,32 @@ object ConfigManager {
     private const val DEFAULT_SERVER_URL = "http://117.72.196.45/syncqclous/"
     private const val DEFAULT_API_KEY = "light-cloud-disk-2026"
 
-    private lateinit var prefs: SharedPreferences
+    private var prefs: SharedPreferences? = null
 
     /**
      * 初始化配置管理器
      */
     fun init(context: Context) {
-        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private fun ensurePrefs(): SharedPreferences {
+        return prefs ?: throw IllegalStateException("ConfigManager not initialized. Call ConfigManager.init(context) first.")
     }
 
     /**
      * 获取服务器地址
      */
     var serverUrl: String
-        get() = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
-        set(value) = prefs.edit().putString(KEY_SERVER_URL, value).apply()
+        get() = ensurePrefs().getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
+        set(value) = ensurePrefs().edit().putString(KEY_SERVER_URL, value).apply()
 
     /**
      * 获取API密钥
      */
     var apiKey: String
-        get() = prefs.getString(KEY_API_KEY, DEFAULT_API_KEY) ?: DEFAULT_API_KEY
-        set(value) = prefs.edit().putString(KEY_API_KEY, value).apply()
+        get() = ensurePrefs().getString(KEY_API_KEY, DEFAULT_API_KEY) ?: DEFAULT_API_KEY
+        set(value) = ensurePrefs().edit().putString(KEY_API_KEY, value).apply()
 
     /**
      * 重置为默认配置
@@ -50,6 +54,10 @@ object ConfigManager {
      * 检查配置是否有效
      */
     fun isConfigValid(): Boolean {
-        return serverUrl.isNotBlank() && apiKey.isNotBlank()
+        return try {
+            serverUrl.isNotBlank() && apiKey.isNotBlank()
+        } catch (e: IllegalStateException) {
+            false
+        }
     }
 }
