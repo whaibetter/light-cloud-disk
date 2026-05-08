@@ -101,6 +101,8 @@ src/src/
 2. **API 客户端封装**：`apiClient` 类自动从 `configStore` 读取服务器地址和 API Key，支持 H5 和 App 两种上传方式
 3. **跨平台条件编译**：使用 `// #ifdef H5` / `// #endif` 处理平台差异
 4. **easycom 自动导入**：`u-` 前缀组件自动映射到 uview-plus
+5. **路径别名**：`@` 映射到 `src/src/` 目录（vite.config.ts 配置）
+6. **SCSS 自动注入**：`variables.scss` 和 `mixins.scss` 通过 vite.config.ts 的 `additionalData` 自动注入，无需手动 import
 
 ### 页面路由
 

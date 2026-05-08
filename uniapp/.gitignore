@@ -1,0 +1,10 @@
+node_modules/
+dist/
+unpackage/
+*.log
+.DS_Store
+.idea/
+*.iml
+.vscode/
+.env.local
+.env.*.local

@@ -1,0 +1,257 @@
+import { useConfigStore } from '@/stores/config.store'
+
+interface RequestOptions {
+  url: string
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  data?: any
+  header?: Record<string, string>
+  timeout?: number
+}
+
+interface RequestResult {
+  data: any
+  statusCode: number
+  header: Record<string, string>
+}
+
+class ApiClient {
+  private baseURL: string = ''
+  private apiKey: string = ''
+  private timeout: number = 30000
+
+  constructor() {
+    this.updateConfig()
+  }
+
+  updateConfig() {
+    try {
+      const configStore = useConfigStore()
+      const url = configStore.serverUrl
+      this.baseURL = (url && url.trim()) ? url.trim().replace(/\/+$/, '') : ''
+      this.apiKey = (configStore.apiKey && configStore.apiKey.trim()) ? configStore.apiKey.trim() : ''
+    } catch (e) {
+      this.baseURL = ''
+      this.apiKey = ''
+    }
+  }
+
+  private checkConfig(): void {
+    if (!this.baseURL || !this.apiKey) {
+      throw new Error('请先在设置页面配置服务器地址和 API Key')
+    }
+  }
+
+  private buildUrl(url: string): string {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    const base = this.baseURL.replace(/\/+$/, '')
+    const path = url.startsWith('/') ? url : '/' + url
+    return base + path
+  }
+
+  private getHeaders(): Record<string, string> {
+    return {
+      'X-API-Key': this.apiKey,
+      'Content-Type': 'application/json'
+    }
+  }
+
+  async request<T = any>(options: RequestOptions): Promise<T> {
+    this.updateConfig()
+    this.checkConfig()
+
+    const {
+      url,
+      method = 'GET',
+      data,
+      header = {},
+      timeout = this.timeout
+    } = options
+
+    const fullUrl = this.buildUrl(url)
+    const headers = { ...this.getHeaders(), ...header }
+
+    return new Promise((resolve, reject) => {
+      const requestOptions: any = {
+        url: fullUrl,
+        method,
+        header: headers,
+        timeout,
+        success: (res: RequestResult) => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(res.data)
+          } else {
+            const errorMsg = res.data?.error || res.data?.message || `Request failed: ${res.statusCode}`
+            reject(new Error(errorMsg))
+          }
+        },
+        fail: (err: any) => {
+          reject(new Error(err.errMsg || 'Network request failed'))
+        }
+      }
+
+      if (data && method !== 'GET') {
+        requestOptions.data = data
+      } else if (data && method === 'GET') {
+        const queryString = Object.entries(data)
+          .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value as any)}`)
+          .join('&')
+        requestOptions.url = fullUrl + (queryString ? `?${queryString}` : '')
+      }
+
+      uni.request(requestOptions)
+    })
+  }
+
+  async get<T = any>(url: string, data?: any): Promise<T> {
+    return this.request<T>({ url, method: 'GET', data })
+  }
+
+  async post<T = any>(url: string, data?: any): Promise<T> {
+    return this.request<T>({ url, method: 'POST', data })
+  }
+
+  async put<T = any>(url: string, data?: any): Promise<T> {
+    return this.request<T>({ url, method: 'PUT', data })
+  }
+
+  async delete<T = any>(url: string, data?: any): Promise<T> {
+    return this.request<T>({ url, method: 'DELETE', data })
+  }
+
+  uploadFile(
+    url: string,
+    filePath: string,
+    name: string = 'files',
+    onProgress?: (percent: number) => void,
+    file?: File
+  ): Promise<any> {
+    this.updateConfig()
+    this.checkConfig()
+
+    const fullUrl = this.buildUrl(url)
+
+    // #ifdef H5
+    // H5 端使用 XMLHttpRequest 以支持文件名
+    if (file) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        const formData = new FormData()
+        formData.append(name, file, file.name)
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && onProgress) {
+            onProgress(Math.round((e.loaded / e.total) * 100))
+          }
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText)
+              resolve(data)
+            } catch {
+              reject(new Error('Invalid response format'))
+            }
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status}`))
+          }
+        }
+
+        xhr.onerror = () => {
+          reject(new Error('Network request failed'))
+        }
+
+        xhr.open('POST', fullUrl)
+        xhr.setRequestHeader('X-API-Key', this.apiKey)
+        xhr.send(formData)
+      })
+    }
+    // #endif
+
+    return new Promise((resolve, reject) => {
+      const uploadTask = uni.uploadFile({
+        url: fullUrl,
+        filePath,
+        name,
+        header: {
+          'X-API-Key': this.apiKey
+        },
+        success: (res) => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              const data = JSON.parse(res.data)
+              resolve(data)
+            } catch {
+              reject(new Error('Invalid response format'))
+            }
+          } else {
+            reject(new Error(`Upload failed: ${res.statusCode}`))
+          }
+        },
+        fail: (err) => {
+          reject(new Error(err.errMsg || 'Network request failed'))
+        }
+      })
+
+      if (onProgress) {
+        uploadTask.onProgressUpdate((res) => {
+          onProgress(res.progress)
+        })
+      }
+    })
+  }
+
+  downloadFile(url: string, fileName?: string): void {
+    this.updateConfig()
+    this.checkConfig()
+
+    const fullUrl = this.buildUrl(url)
+
+    const downloadTask = uni.downloadFile({
+      url: fullUrl,
+      header: {
+        'X-API-Key': this.apiKey
+      },
+      success: (res) => {
+        if (res.statusCode === 200) {
+          uni.saveFile({
+            tempFilePath: res.tempFilePath,
+            success: (saveRes) => {
+              uni.showToast({
+                title: '下载成功',
+                icon: 'success'
+              })
+              console.log('File saved to:', saveRes.savedFilePath)
+            },
+            fail: () => {
+              uni.showToast({
+                title: '保存失败',
+                icon: 'none'
+              })
+            }
+          })
+        }
+      },
+      fail: (err) => {
+        uni.showToast({
+          title: '下载失败',
+          icon: 'none'
+        })
+        console.error('Download failed:', err)
+      }
+    })
+
+    if (fileName) {
+      downloadTask.onProgressUpdate((res) => {
+        uni.showLoading({ title: `下载中 ${res.progress}%` })
+        if (res.progress === 100) {
+          uni.hideLoading()
+        }
+      })
+    }
+  }
+}
+
+export const apiClient = new ApiClient()

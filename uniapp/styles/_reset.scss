@@ -1,0 +1,193 @@
+// ============================================
+// 轻量云盘 - 全局样式重置
+// ============================================
+
+// 盒模型
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+// 页面基础
+page {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  line-height: $line-height-normal;
+  color: $text-primary;
+  background-color: $bg-page;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+// 基础元素
+view, text, image, button, input, textarea, scroll-view, swiper {
+  box-sizing: border-box;
+}
+
+// 按钮重置
+button {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  
+  &::after {
+    border: none;
+  }
+}
+
+// 链接
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+// 图片
+image {
+  max-width: 100%;
+  display: block;
+}
+
+// 滚动视图
+scroll-view {
+  @include scrollbar;
+}
+
+// 选择文本
+::selection {
+  background: rgba($brand-primary, 0.2);
+  color: $text-primary;
+}
+
+// 聚焦样式
+:focus-visible {
+  outline: 2px solid $brand-primary;
+  outline-offset: 2px;
+}
+
+// 隐藏类
+.hidden {
+  display: none !important;
+}
+
+.invisible {
+  visibility: hidden;
+}
+
+// 文本辅助类
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.font-medium {
+  font-weight: $font-weight-medium;
+}
+
+.font-semibold {
+  font-weight: $font-weight-semibold;
+}
+
+.font-bold {
+  font-weight: $font-weight-bold;
+}
+
+// 间距辅助类
+.mt-1 { margin-top: $space-1; }
+.mt-2 { margin-top: $space-2; }
+.mt-3 { margin-top: $space-3; }
+.mt-4 { margin-top: $space-4; }
+.mt-6 { margin-top: $space-6; }
+.mt-8 { margin-top: $space-8; }
+
+.mb-1 { margin-bottom: $space-1; }
+.mb-2 { margin-bottom: $space-2; }
+.mb-3 { margin-bottom: $space-3; }
+.mb-4 { margin-bottom: $space-4; }
+.mb-6 { margin-bottom: $space-6; }
+.mb-8 { margin-bottom: $space-8; }
+
+.p-2 { padding: $space-2; }
+.p-3 { padding: $space-3; }
+.p-4 { padding: $space-4; }
+.p-6 { padding: $space-6; }
+.p-8 { padding: $space-8; }
+
+// Flex 辅助类
+.flex { display: flex; }
+.flex-1 { flex: 1; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: $space-2; }
+.gap-3 { gap: $space-3; }
+.gap-4 { gap: $space-4; }
+
+// 圆角辅助类
+.rounded-sm { border-radius: $radius-sm; }
+.rounded-md { border-radius: $radius-md; }
+.rounded-lg { border-radius: $radius-lg; }
+.rounded-xl { border-radius: $radius-xl; }
+.rounded-full { border-radius: $radius-full; }
+
+// 阴影辅助类
+.shadow-sm { box-shadow: $shadow-sm; }
+.shadow-md { box-shadow: $shadow-md; }
+.shadow-lg { box-shadow: $shadow-lg; }
+
+// 过渡辅助类
+.transition { transition: $transition-base; }
+.transition-fast { transition: $transition-fast; }
+
+// 颜色辅助类
+.text-primary { color: $text-primary; }
+.text-secondary { color: $text-secondary; }
+.text-tertiary { color: $text-tertiary; }
+.text-inverse { color: $text-inverse; }
+.text-brand { color: $brand-primary; }
+.text-success { color: $color-success; }
+.text-warning { color: $color-warning; }
+.text-danger { color: $color-danger; }
+
+.bg-primary { background-color: $bg-card; }
+.bg-sunken { background-color: $bg-sunken; }
+
+// 溢出辅助类
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+
+// 定位辅助类
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+
+// 尺寸辅助类
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.min-h-screen { min-height: 100vh; }
+
+// 光标辅助类
+.cursor-pointer { cursor: pointer; }
+.cursor-default { cursor: default; }
+
+// 桌面端隐藏原生 tabBar
+@include respond-above('md') {
+  uni-tabbar,
+  .uni-tabbar,
+  .uni-tabbar-bottom {
+    display: none !important;
+  }
+}
