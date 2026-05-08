@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import appConfig from '@/config.json'
 
 const STORAGE_KEYS = {
   SERVER_URL: 'lcd_server_url',
@@ -8,6 +9,14 @@ const STORAGE_KEYS = {
   LANGUAGE: 'lcd_language',
   VIEW_MODE: 'lcd_view_mode'
 } as const
+
+const DEFAULTS = {
+  SERVER_URL: appConfig.api.defaultServerUrl,
+  API_KEY: appConfig.api.defaultApiKey,
+  THEME: appConfig.ui.defaultTheme as 'light' | 'dark',
+  LANGUAGE: appConfig.ui.defaultLanguage,
+  VIEW_MODE: appConfig.ui.defaultViewMode as 'list' | 'grid'
+}
 
 function getDefaultServerUrl(): string {
   // #ifdef H5
@@ -21,15 +30,7 @@ function getDefaultServerUrl(): string {
     return `${protocol}//${host}`
   }
   // #endif
-  return 'http://117.72.196.45:12137'
-}
-
-const DEFAULTS = {
-  SERVER_URL: getDefaultServerUrl(),
-  API_KEY: '12138qwe',
-  THEME: 'light',
-  LANGUAGE: 'zh-CN',
-  VIEW_MODE: 'list'
+  return DEFAULTS.SERVER_URL
 }
 
 function normalizeUrl(url: string): string {
@@ -42,7 +43,7 @@ function normalizeUrl(url: string): string {
 }
 
 export const useConfigStore = defineStore('config', () => {
-  const serverUrl = ref(normalizeUrl(uni.getStorageSync(STORAGE_KEYS.SERVER_URL) || ''))
+  const serverUrl = ref(normalizeUrl(uni.getStorageSync(STORAGE_KEYS.SERVER_URL) || getDefaultServerUrl()))
   const apiKey = ref(uni.getStorageSync(STORAGE_KEYS.API_KEY) || DEFAULTS.API_KEY)
   const theme = ref(uni.getStorageSync(STORAGE_KEYS.THEME) || DEFAULTS.THEME)
   const language = ref(uni.getStorageSync(STORAGE_KEYS.LANGUAGE) || DEFAULTS.LANGUAGE)
