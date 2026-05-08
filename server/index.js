@@ -88,20 +88,31 @@ const storage = multer.diskStorage({
     cb(null, UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
-    // 保留原始文件名，如果重复则添加数字后缀
     // 修复中文文件名编码问题
-    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    // multer/busboy 默认使用 latin1 编码，需要转换为 utf8
+    let originalName;
+    try {
+      originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      // 验证转换结果是否有效
+      if (originalName.includes('\ufffd')) {
+        // 转换失败，已经是 utf8 编码
+        originalName = file.originalname;
+      }
+    } catch (e) {
+      originalName = file.originalname;
+    }
+
     const ext = path.extname(originalName);
     const basename = path.basename(originalName, ext);
     let finalName = originalName;
     let counter = 1;
-    
+
     // 检查文件是否已存在，如果存在则添加数字后缀
     while (fs.existsSync(path.join(UPLOAD_DIR, finalName))) {
       finalName = `${basename}(${counter})${ext}`;
       counter++;
     }
-    
+
     cb(null, finalName);
   }
 });

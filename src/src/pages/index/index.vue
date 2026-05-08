@@ -22,12 +22,12 @@
           </view>
         </view>
       </view>
-      
+
       <!-- 移动端搜索 -->
       <view class="mobile-search">
         <view class="mobile-search-box">
           <text class="search-icon">🔍</text>
-          <input 
+          <input
             class="mobile-search-input"
             v-model="searchQuery"
             placeholder="搜索文件..."
@@ -35,6 +35,46 @@
             @input="handleSearch"
           />
           <text v-if="searchQuery" class="search-clear" @click="clearSearch">✕</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 移动端文件列表 -->
+    <view class="mobile-content">
+      <!-- 空状态 -->
+      <view v-if="filteredFiles.length === 0 && !fileStore.loading" class="empty-state">
+        <view class="empty-illustration">
+          <view class="empty-circle">
+            <text class="empty-icon">📭</text>
+          </view>
+        </view>
+        <text class="empty-title">暂无文件</text>
+        <text class="empty-desc">点击下方按钮上传文件</text>
+      </view>
+
+      <!-- 文件列表 -->
+      <view v-if="filteredFiles.length > 0" class="mobile-file-list">
+        <view
+          v-for="(file, index) in filteredFiles"
+          :key="file.id"
+          class="mobile-file-item"
+          @click="handleItemClick(file)"
+        >
+          <view class="mobile-file-icon" :style="{ background: getFileGradient(file.mimetype) }">
+            <text>{{ getFileIcon(file.mimetype) }}</text>
+          </view>
+          <view class="mobile-file-info">
+            <text class="mobile-file-name">{{ file.originalName }}</text>
+            <text class="mobile-file-meta">{{ formatSize(file.size) }} · {{ formatDate(file.uploadTime) }}</text>
+          </view>
+          <view class="mobile-file-actions">
+            <view class="mobile-action-icon download" @click.stop="handleDownload(file)">
+              <text>↓</text>
+            </view>
+            <view class="mobile-action-icon delete" @click.stop="handleDelete(file)">
+              <text>×</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -51,7 +91,7 @@
             <text class="sidebar-logo-text">轻量云盘</text>
           </view>
         </view>
-        
+
         <view class="sidebar-nav">
           <view class="nav-item active">
             <text class="nav-icon">📁</text>
@@ -63,7 +103,7 @@
             <text class="nav-text">设置</text>
           </view>
         </view>
-        
+
         <view class="sidebar-stats">
           <view class="stat-card">
             <text class="stat-label">存储空间</text>
@@ -73,7 +113,7 @@
             </view>
           </view>
         </view>
-        
+
         <view class="sidebar-upload">
           <view class="sidebar-upload-btn" @click="handleUpload">
             <text class="upload-icon">+</text>
@@ -81,10 +121,9 @@
           </view>
         </view>
       </view>
-      
+
       <!-- 主内容区 -->
       <view class="main-content">
-        <!-- 桌面端顶部栏 -->
         <view class="desktop-topbar">
           <view class="topbar-left">
             <text class="topbar-title">所有文件</text>
@@ -93,7 +132,7 @@
           <view class="topbar-right">
             <view class="topbar-search">
               <text class="search-icon">🔍</text>
-              <input 
+              <input
                 class="topbar-search-input"
                 v-model="searchQuery"
                 placeholder="搜索文件..."
@@ -105,15 +144,15 @@
               <view class="theme-btn" @click="toggleTheme">
                 <text>{{ theme === 'dark' ? '☀️' : '🌙' }}</text>
               </view>
-              <view 
-                class="view-btn" 
+              <view
+                class="view-btn"
                 :class="{ active: viewMode === 'list' }"
                 @click="viewMode = 'list'"
               >
                 <text>☰</text>
               </view>
-              <view 
-                class="view-btn" 
+              <view
+                class="view-btn"
                 :class="{ active: viewMode === 'grid' }"
                 @click="viewMode = 'grid'"
               >
@@ -125,20 +164,20 @@
             </view>
           </view>
         </view>
-        
+
         <!-- 筛选标签 -->
         <view class="filter-bar">
           <scroll-view scroll-x class="filter-scroll">
             <view class="filter-tags">
-              <view 
-                class="filter-tag" 
+              <view
+                class="filter-tag"
                 :class="{ active: selectedTypes.length === 0 }"
                 @click="clearTypeFilter"
               >
                 <text>全部</text>
               </view>
-              <view 
-                v-for="type in fileTypeFilters" 
+              <view
+                v-for="type in fileTypeFilters"
                 :key="type.value"
                 class="filter-tag"
                 :class="{ active: selectedTypes.includes(type.value) }"
@@ -150,7 +189,7 @@
             </view>
           </scroll-view>
         </view>
-        
+
         <!-- 文件列表区域 -->
         <view class="files-area">
           <!-- 空状态 -->
@@ -167,23 +206,19 @@
               <text>上传文件</text>
             </view>
           </view>
-          
+
           <!-- 列表视图 -->
           <view v-if="viewMode === 'list' && filteredFiles.length > 0" class="list-view">
-            <!-- 表头 -->
             <view class="list-header">
               <text class="header-name">名称</text>
               <text class="header-size">大小</text>
               <text class="header-time">修改时间</text>
               <text class="header-actions">操作</text>
             </view>
-            
-            <!-- 文件行 -->
-            <view 
-              v-for="(file, index) in filteredFiles" 
+            <view
+              v-for="(file, index) in filteredFiles"
               :key="file.id"
               class="list-row"
-              :style="{ animationDelay: index * 0.03 + 's' }"
               @click="handleItemClick(file)"
             >
               <view class="row-name">
@@ -204,14 +239,13 @@
               </view>
             </view>
           </view>
-          
+
           <!-- 网格视图 -->
           <view v-if="viewMode === 'grid' && filteredFiles.length > 0" class="grid-view">
-            <view 
-              v-for="(file, index) in filteredFiles" 
+            <view
+              v-for="(file, index) in filteredFiles"
               :key="file.id"
               class="grid-card"
-              :style="{ animationDelay: index * 0.03 + 's' }"
               @click="handleItemClick(file)"
             >
               <view class="card-icon" :style="{ background: getFileGradient(file.mimetype) }">
@@ -232,27 +266,25 @@
         </view>
       </view>
     </view>
-    
-    <!-- 移动端底部上传栏 -->
-    <view class="mobile-upload-bar">
+
+    <!-- 移动端底部操作栏 -->
+    <view class="mobile-bottom-bar">
       <view class="mobile-upload-btn" @click="handleUpload">
         <text class="upload-icon">+</text>
         <text class="upload-text">上传文件</text>
       </view>
-    </view>
-    
-    <!-- 移动端底部导航 -->
-    <view class="mobile-tabbar">
-      <view class="tab-item active">
-        <text class="tab-icon">📁</text>
-        <text class="tab-text">文件</text>
-      </view>
-      <view class="tab-item" @click="goToSettings">
-        <text class="tab-icon">⚙️</text>
-        <text class="tab-text">设置</text>
+      <view class="mobile-tabbar">
+        <view class="tab-item active">
+          <text class="tab-icon">📁</text>
+          <text class="tab-text">文件</text>
+        </view>
+        <view class="tab-item" @click="goToSettings">
+          <text class="tab-icon">⚙️</text>
+          <text class="tab-text">设置</text>
+        </view>
       </view>
     </view>
-    
+
     <!-- 排序面板 -->
     <view v-if="showSortPanel" class="modal-overlay" @click="showSortPanel = false">
       <view class="sort-modal" @click.stop>
@@ -263,8 +295,8 @@
           </view>
         </view>
         <view class="modal-body">
-          <view 
-            v-for="option in sortOptions" 
+          <view
+            v-for="option in sortOptions"
             :key="option.value"
             class="sort-option"
             :class="{ active: fileStore.sortBy === option.value }"
@@ -276,15 +308,15 @@
           </view>
           <view class="sort-divider"></view>
           <view class="sort-direction">
-            <view 
-              class="direction-btn" 
+            <view
+              class="direction-btn"
               :class="{ active: fileStore.sortOrder === 'desc' }"
               @click="setSortOrder('desc')"
             >
               <text>降序 ↓</text>
             </view>
-            <view 
-              class="direction-btn" 
+            <view
+              class="direction-btn"
               :class="{ active: fileStore.sortOrder === 'asc' }"
               @click="setSortOrder('asc')"
             >
@@ -294,7 +326,7 @@
         </view>
       </view>
     </view>
-    
+
     <!-- 上传面板 -->
     <view v-if="showUploadPanel" class="modal-overlay" @click="closeUploadPanel">
       <view class="upload-modal" @click.stop>
@@ -326,7 +358,7 @@
         </view>
       </view>
     </view>
-    
+
     <!-- 上传进度 -->
     <view v-if="uploading" class="modal-overlay">
       <view class="progress-modal">
@@ -389,7 +421,7 @@ const storagePercent = computed(() => {
 
 const filteredFiles = computed(() => {
   let result = [...fileStore.files]
-  
+
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(f => f.originalName.toLowerCase().includes(query))
@@ -426,10 +458,10 @@ function getFileType(mimetype: string): string {
   if (mimetype.startsWith('image/')) return 'image'
   if (mimetype.startsWith('video/')) return 'video'
   if (mimetype.startsWith('audio/')) return 'audio'
-  if (mimetype.includes('pdf') || mimetype.includes('word') || mimetype.includes('document') || 
+  if (mimetype.includes('pdf') || mimetype.includes('word') || mimetype.includes('document') ||
       mimetype.includes('excel') || mimetype.includes('spreadsheet') || mimetype.includes('powerpoint') ||
       mimetype.includes('presentation') || mimetype.includes('text')) return 'document'
-  if (mimetype.includes('zip') || mimetype.includes('rar') || mimetype.includes('tar') || 
+  if (mimetype.includes('zip') || mimetype.includes('rar') || mimetype.includes('tar') ||
       mimetype.includes('gzip') || mimetype.includes('7z')) return 'archive'
   return 'other'
 }
@@ -482,7 +514,19 @@ onMounted(() => {
   statusBarHeight.value = sysInfo.statusBarHeight || 0
   viewMode.value = configStore.viewMode as 'list' | 'grid'
   theme.value = configStore.theme as 'light' | 'dark'
-  loadFiles()
+
+  if (!configStore.isConfigValid()) {
+    uni.showModal({
+      title: '配置提示',
+      content: '首次使用请先配置服务器地址和 API Key',
+      showCancel: false,
+      success: () => {
+        uni.switchTab({ url: '/pages/settings/index' })
+      }
+    })
+  } else {
+    loadFiles()
+  }
 })
 
 function toggleTheme() {
@@ -614,18 +658,18 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   flex-direction: column;
 }
 
-// ========== 移动端样式 ==========
+// ========== 移动端顶部 ==========
 .mobile-header {
   display: block;
   position: relative;
   background: $brand-gradient;
   padding: $space-4;
   padding-top: calc(#{$space-4} + #{$safe-top});
-  
+
   @include respond-above('md') {
     display: none;
   }
-  
+
   .mobile-header-bg {
     position: absolute;
     inset: 0;
@@ -633,7 +677,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 0%, transparent 50%),
                       radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 50%);
   }
-  
+
   .mobile-header-content {
     position: relative;
     display: flex;
@@ -641,12 +685,12 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     justify-content: space-between;
     margin-bottom: $space-4;
   }
-  
+
   .mobile-logo {
     display: flex;
     align-items: center;
     gap: $space-3;
-    
+
     .mobile-logo-icon {
       width: 44px;
       height: 44px;
@@ -655,7 +699,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       @include flex-center;
       font-size: 22px;
     }
-    
+
     .mobile-logo-text {
       .mobile-app-name {
         display: block;
@@ -663,7 +707,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         font-weight: $font-weight-bold;
         color: $text-inverse;
       }
-      
+
       .mobile-app-desc {
         display: block;
         font-size: $font-size-xs;
@@ -671,11 +715,11 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       }
     }
   }
-  
+
   .mobile-actions {
     display: flex;
     gap: $space-2;
-    
+
     .mobile-action-btn {
       width: 40px;
       height: 40px;
@@ -685,10 +729,10 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       font-size: 18px;
     }
   }
-  
+
   .mobile-search {
     position: relative;
-    
+
     .mobile-search-box {
       display: flex;
       align-items: center;
@@ -697,22 +741,22 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       padding: 0 $space-4;
       height: 44px;
       box-shadow: $shadow-md;
-      
+
       .search-icon {
         font-size: 16px;
         margin-right: $space-2;
       }
-      
+
       .mobile-search-input {
         flex: 1;
         height: 100%;
         font-size: $font-size-base;
       }
-      
+
       .search-placeholder {
         color: $text-tertiary;
       }
-      
+
       .search-clear {
         padding: $space-1;
         font-size: $font-size-sm;
@@ -722,72 +766,158 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   }
 }
 
-.mobile-upload-bar {
+// ========== 移动端内容区 ==========
+.mobile-content {
+  flex: 1;
   display: block;
-  padding: $space-3 $space-4;
-  background: $bg-card;
-  border-top: 1px solid $border-subtle;
-  
+  overflow-y: auto;
+  padding-bottom: 140px; // 为底部栏留空间
+
   @include respond-above('md') {
     display: none;
   }
-  
+}
+
+// ========== 移动端文件列表 ==========
+.mobile-file-list {
+  padding: $space-3;
+}
+
+.mobile-file-item {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3;
+  background: $bg-card;
+  border-radius: $radius-lg;
+  margin-bottom: $space-2;
+  box-shadow: $shadow-xs;
+
+  .mobile-file-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-md;
+    @include flex-center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .mobile-file-info {
+    flex: 1;
+    min-width: 0;
+
+    .mobile-file-name {
+      display: block;
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      color: $text-primary;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-file-meta {
+      display: block;
+      font-size: $font-size-xs;
+      color: $text-secondary;
+      margin-top: 2px;
+    }
+  }
+
+  .mobile-file-actions {
+    display: flex;
+    gap: $space-2;
+    flex-shrink: 0;
+
+    .mobile-action-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: $radius-full;
+      @include flex-center;
+      font-size: 14px;
+      font-weight: $font-weight-bold;
+
+      &.download {
+        background: rgba($color-info, 0.1);
+        color: $color-info;
+      }
+
+      &.delete {
+        background: rgba($color-danger, 0.1);
+        color: $color-danger;
+      }
+    }
+  }
+}
+
+// ========== 移动端底部栏 ==========
+.mobile-bottom-bar {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: $z-fixed;
+  background: $bg-card;
+  border-top: 1px solid $border-subtle;
+  padding-bottom: $safe-bottom;
+
+  @include respond-above('md') {
+    display: none;
+  }
+
   .mobile-upload-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: $space-2;
-    height: 48px;
+    height: 44px;
+    margin: $space-2 $space-3;
     background: $brand-gradient;
     border-radius: $radius-full;
     color: $text-inverse;
     font-weight: $font-weight-semibold;
     box-shadow: $shadow-colored;
-    
+
     .upload-icon {
-      font-size: 20px;
+      font-size: 18px;
     }
   }
-}
 
-.mobile-tabbar {
-  display: flex;
-  background: $bg-card;
-  border-top: 1px solid $border-subtle;
-  padding-bottom: $safe-bottom;
-  
-  @include respond-above('md') {
-    display: none;
-  }
-  
-  .tab-item {
-    flex: 1;
+  .mobile-tabbar {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: $space-2 0;
-    color: $text-tertiary;
-    
-    &.active {
-      color: $brand-primary;
-    }
-    
-    .tab-icon {
-      font-size: 20px;
-    }
-    
-    .tab-text {
-      font-size: $font-size-xs;
+    border-top: 1px solid $border-subtle;
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: $space-2 0;
+      color: $text-tertiary;
+
+      &.active {
+        color: $brand-primary;
+      }
+
+      .tab-icon {
+        font-size: 20px;
+      }
+
+      .tab-text {
+        font-size: $font-size-xs;
+      }
     }
   }
 }
 
-// ========== 桌面端样式 ==========
+// ========== 桌面端布局 ==========
 .desktop-layout {
   display: none;
   flex: 1;
-  
+
   @include respond-above('md') {
     display: flex;
   }
@@ -802,16 +932,16 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   height: 100vh;
   position: sticky;
   top: 0;
-  
+
   .sidebar-header {
     padding: $space-6;
     border-bottom: 1px solid $border-subtle;
-    
+
     .sidebar-logo {
       display: flex;
       align-items: center;
       gap: $space-3;
-      
+
       .sidebar-logo-icon {
         width: 40px;
         height: 40px;
@@ -821,7 +951,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         font-size: 20px;
         box-shadow: $shadow-colored;
       }
-      
+
       .sidebar-logo-text {
         font-size: $font-size-lg;
         font-weight: $font-weight-bold;
@@ -829,11 +959,11 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       }
     }
   }
-  
+
   .sidebar-nav {
     padding: $space-4 $space-3;
     flex: 1;
-    
+
     .nav-item {
       display: flex;
       align-items: center;
@@ -844,27 +974,27 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       cursor: pointer;
       transition: $transition-base;
       margin-bottom: $space-1;
-      
+
       &:hover {
         background: $bg-sunken;
         color: $text-primary;
       }
-      
+
       &.active {
         background: $brand-gradient-subtle;
         color: $brand-primary;
       }
-      
+
       .nav-icon {
         font-size: 18px;
       }
-      
+
       .nav-text {
         flex: 1;
         font-size: $font-size-base;
         font-weight: $font-weight-medium;
       }
-      
+
       .nav-badge {
         font-size: $font-size-xs;
         background: $bg-sunken;
@@ -874,22 +1004,22 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       }
     }
   }
-  
+
   .sidebar-stats {
     padding: $space-4;
-    
+
     .stat-card {
       background: $bg-sunken;
       border-radius: $radius-lg;
       padding: $space-4;
-      
+
       .stat-label {
         display: block;
         font-size: $font-size-xs;
         color: $text-secondary;
         margin-bottom: $space-1;
       }
-      
+
       .stat-value {
         display: block;
         font-size: $font-size-lg;
@@ -897,13 +1027,13 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         color: $text-primary;
         margin-bottom: $space-3;
       }
-      
+
       .stat-bar {
         height: 4px;
         background: $gray-200;
         border-radius: $radius-full;
         overflow: hidden;
-        
+
         .stat-bar-fill {
           height: 100%;
           background: $brand-gradient;
@@ -913,10 +1043,10 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       }
     }
   }
-  
+
   .sidebar-upload {
     padding: $space-4;
-    
+
     .sidebar-upload-btn {
       display: flex;
       align-items: center;
@@ -930,12 +1060,12 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       cursor: pointer;
       transition: $transition-base;
       box-shadow: $shadow-colored;
-      
+
       &:hover {
         transform: translateY(-1px);
         box-shadow: 0 12px 20px -5px rgba($brand-primary, 0.4);
       }
-      
+
       .upload-icon {
         font-size: 18px;
       }
@@ -948,7 +1078,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   display: flex;
   flex-direction: column;
   min-width: 0;
-  
+
   .desktop-topbar {
     display: flex;
     align-items: center;
@@ -959,7 +1089,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     position: sticky;
     top: 0;
     z-index: $z-sticky;
-    
+
     .topbar-left {
       .topbar-title {
         display: block;
@@ -967,19 +1097,19 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         font-weight: $font-weight-bold;
         color: $text-primary;
       }
-      
+
       .topbar-count {
         display: block;
         font-size: $font-size-sm;
         color: $text-secondary;
       }
     }
-    
+
     .topbar-right {
       display: flex;
       align-items: center;
       gap: $space-4;
-      
+
       .topbar-search {
         display: flex;
         align-items: center;
@@ -988,33 +1118,33 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         padding: 0 $space-4;
         height: 40px;
         width: 280px;
-        
+
         .search-icon {
           font-size: 14px;
           margin-right: $space-2;
           color: $text-tertiary;
         }
-        
+
         .topbar-search-input {
           flex: 1;
           height: 100%;
           font-size: $font-size-sm;
           background: transparent;
         }
-        
+
         .search-placeholder {
           color: $text-tertiary;
         }
       }
-      
-        .topbar-actions {
+
+      .topbar-actions {
         display: flex;
         align-items: center;
         gap: $space-1;
         background: $bg-sunken;
         border-radius: $radius-lg;
         padding: $space-1;
-        
+
         .theme-btn {
           width: 36px;
           height: 36px;
@@ -1025,13 +1155,13 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
           cursor: pointer;
           transition: $transition-base;
           margin-right: $space-1;
-          
+
           &:hover {
             color: $text-primary;
             background: $bg-card;
           }
         }
-        
+
         .view-btn {
           width: 36px;
           height: 36px;
@@ -1041,18 +1171,18 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
           color: $text-secondary;
           cursor: pointer;
           transition: $transition-base;
-          
+
           &:hover {
             color: $text-primary;
           }
-          
+
           &.active {
             background: $bg-card;
             color: $brand-primary;
             box-shadow: $shadow-xs;
           }
         }
-        
+
         .sort-btn {
           width: 36px;
           height: 36px;
@@ -1063,7 +1193,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
           cursor: pointer;
           transition: $transition-base;
           margin-left: $space-1;
-          
+
           &:hover {
             color: $text-primary;
             background: $bg-card;
@@ -1072,20 +1202,20 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       }
     }
   }
-  
+
   .filter-bar {
     padding: $space-4 $space-6;
     background: $bg-card;
     border-bottom: 1px solid $border-subtle;
-    
+
     .filter-scroll {
       white-space: nowrap;
     }
-    
+
     .filter-tags {
       display: inline-flex;
       gap: $space-2;
-      
+
       .filter-tag {
         display: inline-flex;
         align-items: center;
@@ -1097,16 +1227,16 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         color: $text-secondary;
         cursor: pointer;
         transition: $transition-base;
-        
+
         &:hover {
           background: $gray-200;
           color: $text-primary;
         }
-        
+
         .tag-icon {
           font-size: 14px;
         }
-        
+
         &.active {
           background: $brand-primary;
           color: $text-inverse;
@@ -1114,7 +1244,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       }
     }
   }
-  
+
   .files-area {
     flex: 1;
     padding: $space-6;
@@ -1129,36 +1259,36 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   align-items: center;
   justify-content: center;
   padding: $space-16 $space-8;
-  
+
   .empty-illustration {
     margin-bottom: $space-8;
-    
+
     .empty-circle {
       width: 120px;
       height: 120px;
       background: $brand-gradient-subtle;
       border-radius: $radius-full;
       @include flex-center;
-      
+
       .empty-icon {
         font-size: 48px;
       }
     }
   }
-  
+
   .empty-title {
     font-size: $font-size-xl;
     font-weight: $font-weight-bold;
     color: $text-primary;
     margin-bottom: $space-2;
   }
-  
+
   .empty-desc {
     font-size: $font-size-base;
     color: $text-secondary;
     margin-bottom: $space-8;
   }
-  
+
   .empty-action {
     display: flex;
     align-items: center;
@@ -1171,26 +1301,26 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     cursor: pointer;
     transition: $transition-base;
     box-shadow: $shadow-colored;
-    
+
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 12px 20px -5px rgba($brand-primary, 0.4);
     }
-    
+
     .action-icon {
       font-size: 18px;
     }
   }
 }
 
-// ========== 列表视图 ==========
+// ========== 桌面端列表视图 ==========
 .list-view {
   @include card;
   overflow: hidden;
-  
+
   .list-header {
     display: none;
-    
+
     @include respond-above('md') {
       display: flex;
       align-items: center;
@@ -1202,14 +1332,14 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       color: $text-secondary;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      
+
       .header-name { flex: 1; min-width: 0; }
       .header-size { width: 100px; text-align: right; }
       .header-time { width: 150px; text-align: right; }
       .header-actions { width: 100px; text-align: right; }
     }
   }
-  
+
   .list-row {
     display: flex;
     align-items: center;
@@ -1217,23 +1347,22 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     border-bottom: 1px solid $border-subtle;
     cursor: pointer;
     transition: $transition-base;
-    animation: fadeInUp $duration-slow $ease-out both;
-    
+
     &:last-child {
       border-bottom: none;
     }
-    
+
     &:hover {
       background: $bg-sunken;
     }
-    
+
     .row-name {
       flex: 1;
       display: flex;
       align-items: center;
       gap: $space-3;
       min-width: 0;
-      
+
       .file-icon {
         width: 40px;
         height: 40px;
@@ -1242,7 +1371,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         font-size: 18px;
         flex-shrink: 0;
       }
-      
+
       .file-name {
         font-size: $font-size-base;
         font-weight: $font-weight-medium;
@@ -1250,42 +1379,42 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         @include text-truncate;
       }
     }
-    
+
     .row-size,
     .row-time {
       display: none;
-      
+
       @include respond-above('md') {
         display: block;
         font-size: $font-size-sm;
         color: $text-secondary;
       }
     }
-    
+
     .row-size {
       @include respond-above('md') {
         width: 100px;
         text-align: right;
       }
     }
-    
+
     .row-time {
       @include respond-above('md') {
         width: 150px;
         text-align: right;
       }
     }
-    
+
     .row-actions {
       display: flex;
       gap: $space-2;
       margin-left: $space-4;
-      
+
       @include respond-above('md') {
         width: 100px;
         justify-content: flex-end;
       }
-      
+
       .action-btn {
         width: 32px;
         height: 32px;
@@ -1295,20 +1424,20 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         font-weight: $font-weight-bold;
         cursor: pointer;
         transition: $transition-base;
-        
+
         &.download {
           background: rgba($color-info, 0.1);
           color: $color-info;
-          
+
           &:hover {
             background: rgba($color-info, 0.2);
           }
         }
-        
+
         &.delete {
           background: rgba($color-danger, 0.1);
           color: $color-danger;
-          
+
           &:hover {
             background: rgba($color-danger, 0.2);
           }
@@ -1318,24 +1447,24 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   }
 }
 
-// ========== 网格视图 ==========
+// ========== 桌面端网格视图 ==========
 .grid-view {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: $space-4;
-  
+
   @include respond-above('sm') {
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   @include respond-above('lg') {
     grid-template-columns: repeat(4, 1fr);
   }
-  
+
   @include respond-above('xl') {
     grid-template-columns: repeat(5, 1fr);
   }
-  
+
   .grid-card {
     @include card;
     @include card-hover;
@@ -1344,8 +1473,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     flex-direction: column;
     align-items: center;
     cursor: pointer;
-    animation: fadeInUp $duration-slow $ease-out both;
-    
+
     .card-icon {
       width: 64px;
       height: 64px;
@@ -1354,7 +1482,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       font-size: 28px;
       margin-bottom: $space-3;
     }
-    
+
     .card-name {
       font-size: $font-size-sm;
       font-weight: $font-weight-medium;
@@ -1364,19 +1492,19 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       width: 100%;
       margin-bottom: $space-1;
     }
-    
+
     .card-meta {
       font-size: $font-size-xs;
       color: $text-secondary;
       margin-bottom: $space-3;
     }
-    
+
     .card-actions {
       display: flex;
       gap: $space-2;
       opacity: 0;
       transition: $transition-base;
-      
+
       .action-btn {
         width: 28px;
         height: 28px;
@@ -1386,27 +1514,27 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         font-weight: $font-weight-bold;
         cursor: pointer;
         transition: $transition-base;
-        
+
         &.download {
           background: rgba($color-info, 0.1);
           color: $color-info;
-          
+
           &:hover {
             background: rgba($color-info, 0.2);
           }
         }
-        
+
         &.delete {
           background: rgba($color-danger, 0.1);
           color: $color-danger;
-          
+
           &:hover {
             background: rgba($color-danger, 0.2);
           }
         }
       }
     }
-    
+
     &:hover .card-actions {
       opacity: 1;
     }
@@ -1421,7 +1549,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   backdrop-filter: blur(4px);
   z-index: $z-modal-backdrop;
   @include flex-center;
-  
+
   @include respond-below('md') {
     align-items: flex-end;
   }
@@ -1437,26 +1565,26 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   max-height: 80vh;
   overflow-y: auto;
   animation: fadeInScale $duration-slow $ease-out;
-  
+
   @include respond-below('md') {
     width: 100%;
     border-radius: $radius-2xl $radius-2xl 0 0;
     animation: slideUp $duration-slow $ease-out;
   }
-  
+
   .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: $space-5 $space-6;
     border-bottom: 1px solid $border-subtle;
-    
+
     .modal-title {
       font-size: $font-size-lg;
       font-weight: $font-weight-semibold;
       color: $text-primary;
     }
-    
+
     .modal-close {
       width: 32px;
       height: 32px;
@@ -1466,14 +1594,14 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       color: $text-secondary;
       cursor: pointer;
       transition: $transition-base;
-      
+
       &:hover {
         background: $bg-sunken;
         color: $text-primary;
       }
     }
   }
-  
+
   .modal-body {
     padding: $space-4 $space-6 $space-6;
   }
@@ -1488,27 +1616,27 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   cursor: pointer;
   transition: $transition-base;
   margin-bottom: $space-1;
-  
+
   &:hover {
     background: $bg-sunken;
   }
-  
+
   .option-icon {
     font-size: 18px;
   }
-  
+
   .option-text {
     flex: 1;
     font-size: $font-size-base;
     color: $text-primary;
   }
-  
+
   .option-check {
     font-size: 16px;
     color: $brand-primary;
     font-weight: $font-weight-bold;
   }
-  
+
   &.active {
     background: $brand-gradient-subtle;
   }
@@ -1523,7 +1651,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
 .sort-direction {
   display: flex;
   gap: $space-2;
-  
+
   .direction-btn {
     flex: 1;
     height: 40px;
@@ -1534,11 +1662,11 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     color: $text-secondary;
     cursor: pointer;
     transition: $transition-base;
-    
+
     &:hover {
       background: $gray-200;
     }
-    
+
     &.active {
       background: $brand-primary;
       color: $text-inverse;
@@ -1555,27 +1683,27 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
   cursor: pointer;
   transition: $transition-base;
   margin-bottom: $space-2;
-  
+
   &:hover {
     background: $bg-sunken;
   }
-  
+
   .option-icon-wrapper {
     width: 48px;
     height: 48px;
     border-radius: $radius-lg;
     @include flex-center;
     font-size: 24px;
-    
+
     &.image {
       background: linear-gradient(135deg, #F472B6 0%, #EC4899 100%);
     }
-    
+
     &.file {
       background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
     }
   }
-  
+
   .option-info {
     .option-title {
       display: block;
@@ -1583,7 +1711,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       font-weight: $font-weight-semibold;
       color: $text-primary;
     }
-    
+
     .option-desc {
       display: block;
       font-size: $font-size-sm;
@@ -1595,7 +1723,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
 .progress-modal {
   padding: $space-10 $space-8;
   text-align: center;
-  
+
   .progress-spinner {
     width: 48px;
     height: 48px;
@@ -1605,7 +1733,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     animation: spin 1s linear infinite;
     margin: 0 auto $space-4;
   }
-  
+
   .progress-title {
     display: block;
     font-size: $font-size-lg;
@@ -1613,7 +1741,7 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     color: $text-primary;
     margin-bottom: $space-1;
   }
-  
+
   .progress-percent {
     display: block;
     font-size: $font-size-3xl;
@@ -1621,13 +1749,13 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
     color: $brand-primary;
     margin-bottom: $space-4;
   }
-  
+
   .progress-bar {
     height: 6px;
     background: $gray-200;
     border-radius: $radius-full;
     overflow: hidden;
-    
+
     .progress-fill {
       height: 100%;
       background: $brand-gradient;

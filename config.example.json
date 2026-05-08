@@ -15,5 +15,14 @@
       "key_alias": "lightclouddisk",
       "key_password": "YOUR_KEY_PASSWORD_HERE"
     }
+  },
+  "api": {
+    "defaultServerUrl": "",
+    "defaultApiKey": ""
+  },
+  "ui": {
+    "defaultTheme": "light",
+    "defaultLanguage": "zh",
+    "defaultViewMode": "list"
   }
 }

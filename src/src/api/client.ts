@@ -14,12 +14,9 @@ interface RequestResult {
   header: Record<string, string>
 }
 
-const DEFAULT_BASE_URL = 'http://localhost:3000'
-const DEFAULT_API_KEY = 'light-cloud-disk-2026'
-
 class ApiClient {
-  private baseURL: string = DEFAULT_BASE_URL
-  private apiKey: string = DEFAULT_API_KEY
+  private baseURL: string = ''
+  private apiKey: string = ''
   private timeout: number = 30000
 
   constructor() {
@@ -30,11 +27,17 @@ class ApiClient {
     try {
       const configStore = useConfigStore()
       const url = configStore.serverUrl
-      this.baseURL = (url && url.trim()) ? url.trim().replace(/\/+$/, '') : DEFAULT_BASE_URL
-      this.apiKey = (configStore.apiKey && configStore.apiKey.trim()) ? configStore.apiKey.trim() : DEFAULT_API_KEY
+      this.baseURL = (url && url.trim()) ? url.trim().replace(/\/+$/, '') : ''
+      this.apiKey = (configStore.apiKey && configStore.apiKey.trim()) ? configStore.apiKey.trim() : ''
     } catch (e) {
-      this.baseURL = DEFAULT_BASE_URL
-      this.apiKey = DEFAULT_API_KEY
+      this.baseURL = ''
+      this.apiKey = ''
+    }
+  }
+
+  private checkConfig(): void {
+    if (!this.baseURL || !this.apiKey) {
+      throw new Error('请先在设置页面配置服务器地址和 API Key')
     }
   }
 
@@ -56,6 +59,7 @@ class ApiClient {
 
   async request<T = any>(options: RequestOptions): Promise<T> {
     this.updateConfig()
+    this.checkConfig()
 
     const {
       url,
@@ -124,6 +128,7 @@ class ApiClient {
     file?: File
   ): Promise<any> {
     this.updateConfig()
+    this.checkConfig()
 
     const fullUrl = this.buildUrl(url)
 
@@ -200,6 +205,7 @@ class ApiClient {
 
   downloadFile(url: string, fileName?: string): void {
     this.updateConfig()
+    this.checkConfig()
 
     const fullUrl = this.buildUrl(url)
 

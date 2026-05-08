@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import appConfig from '@/config.json'
 
 const STORAGE_KEYS = {
   SERVER_URL: 'lcd_server_url',
@@ -11,15 +10,15 @@ const STORAGE_KEYS = {
 } as const
 
 const DEFAULTS = {
-  SERVER_URL: appConfig.api.defaultServerUrl,
-  API_KEY: appConfig.api.defaultApiKey,
-  THEME: appConfig.ui.defaultTheme as 'light' | 'dark',
-  LANGUAGE: appConfig.ui.defaultLanguage,
-  VIEW_MODE: appConfig.ui.defaultViewMode as 'list' | 'grid'
+  SERVER_URL: '',
+  API_KEY: '',
+  THEME: 'light' as 'light' | 'dark',
+  LANGUAGE: 'zh',
+  VIEW_MODE: 'list' as 'list' | 'grid'
 }
 
 function normalizeUrl(url: string): string {
-  if (!url || !url.trim()) return DEFAULTS.SERVER_URL
+  if (!url || !url.trim()) return ''
   let normalized = url.trim().replace(/\/+$/, '')
   if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
     normalized = 'http://' + normalized
@@ -28,8 +27,8 @@ function normalizeUrl(url: string): string {
 }
 
 export const useConfigStore = defineStore('config', () => {
-  const serverUrl = ref(normalizeUrl(uni.getStorageSync(STORAGE_KEYS.SERVER_URL) || DEFAULTS.SERVER_URL))
-  const apiKey = ref(uni.getStorageSync(STORAGE_KEYS.API_KEY) || DEFAULTS.API_KEY)
+  const serverUrl = ref(normalizeUrl(uni.getStorageSync(STORAGE_KEYS.SERVER_URL) || ''))
+  const apiKey = ref(uni.getStorageSync(STORAGE_KEYS.API_KEY) || '')
   const theme = ref(uni.getStorageSync(STORAGE_KEYS.THEME) || DEFAULTS.THEME)
   const language = ref(uni.getStorageSync(STORAGE_KEYS.LANGUAGE) || DEFAULTS.LANGUAGE)
   const viewMode = ref(uni.getStorageSync(STORAGE_KEYS.VIEW_MODE) || DEFAULTS.VIEW_MODE)
@@ -67,14 +66,14 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   function resetToDefault() {
-    serverUrl.value = DEFAULTS.SERVER_URL
-    apiKey.value = DEFAULTS.API_KEY
+    serverUrl.value = ''
+    apiKey.value = ''
     theme.value = DEFAULTS.THEME
     language.value = DEFAULTS.LANGUAGE
     viewMode.value = DEFAULTS.VIEW_MODE
 
-    uni.setStorageSync(STORAGE_KEYS.SERVER_URL, DEFAULTS.SERVER_URL)
-    uni.setStorageSync(STORAGE_KEYS.API_KEY, DEFAULTS.API_KEY)
+    uni.setStorageSync(STORAGE_KEYS.SERVER_URL, '')
+    uni.setStorageSync(STORAGE_KEYS.API_KEY, '')
     uni.setStorageSync(STORAGE_KEYS.THEME, DEFAULTS.THEME)
     uni.setStorageSync(STORAGE_KEYS.LANGUAGE, DEFAULTS.LANGUAGE)
     uni.setStorageSync(STORAGE_KEYS.VIEW_MODE, DEFAULTS.VIEW_MODE)

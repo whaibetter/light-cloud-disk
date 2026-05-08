@@ -360,6 +360,11 @@ onMounted(() => {
   serverUrl.value = configStore.serverUrl
   apiKey.value = configStore.apiKey
   viewMode.value = configStore.viewMode as 'list' | 'grid'
+
+  // 首次访问时显示配置提示
+  if (!configStore.isConfigValid()) {
+    uni.showToast({ title: '请先配置服务器地址和 API Key', icon: 'none', duration: 3000 })
+  }
 })
 
 function goToFiles() {
@@ -424,15 +429,15 @@ function saveConfig() {
 function resetConfig() {
   uni.showModal({
     title: '确认恢复',
-    content: '确定要恢复默认配置吗？',
+    content: '确定要清空配置吗？这将清除服务器地址和 API Key。',
     confirmColor: '#4F46E5',
     success: (res) => {
       if (res.confirm) {
         configStore.resetToDefault()
-        serverUrl.value = configStore.serverUrl
-        apiKey.value = configStore.apiKey
+        serverUrl.value = ''
+        apiKey.value = ''
         viewMode.value = configStore.viewMode as 'list' | 'grid'
-        uni.showToast({ title: '已恢复默认配置', icon: 'success' })
+        uni.showToast({ title: '配置已清空', icon: 'success' })
       }
     }
   })
