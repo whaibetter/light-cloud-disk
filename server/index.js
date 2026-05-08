@@ -81,11 +81,19 @@ const storage = multer.diskStorage({
     cb(null, UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
-    // 使用原始文件名，添加时间戳避免重名
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    // 保留原始文件名，如果重复则添加数字后缀
     const ext = path.extname(file.originalname);
     const basename = path.basename(file.originalname, ext);
-    cb(null, `${basename}-${uniqueSuffix}${ext}`);
+    let finalName = file.originalname;
+    let counter = 1;
+    
+    // 检查文件是否已存在，如果存在则添加数字后缀
+    while (fs.existsSync(path.join(UPLOAD_DIR, finalName))) {
+      finalName = `${basename}(${counter})${ext}`;
+      counter++;
+    }
+    
+    cb(null, finalName);
   }
 });
 

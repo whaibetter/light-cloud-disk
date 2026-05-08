@@ -1,164 +1,341 @@
 <template>
-  <view class="page-index">
-    <view class="header">
-      <view class="status-bar" :style="{ height: statusBarHeight + 'px' }"></view>
-      <view class="search-row">
-        <view class="search-bar">
-          <text class="search-icon">🔍</text>
-          <input 
-            class="search-input" 
-            v-model="searchQuery"
-            placeholder="搜索文件..."
-            @input="handleSearch"
-            @confirm="handleSearch"
-          />
-          <text v-if="searchQuery" class="clear-icon" @click="clearSearch">✕</text>
+  <view class="page">
+    <!-- 移动端顶部 -->
+    <view class="mobile-header">
+      <view class="mobile-header-bg"></view>
+      <view class="mobile-header-content">
+        <view class="mobile-logo">
+          <view class="mobile-logo-icon">
+            <text>☁️</text>
+          </view>
+          <view class="mobile-logo-text">
+            <text class="mobile-app-name">轻量云盘</text>
+            <text class="mobile-app-desc">{{ fileStore.files.length }} 个文件</text>
+          </view>
         </view>
-        <view class="filter-btn" @click="toggleFilterPanel">
-          <text>筛选</text>
-        </view>
-      </view>
-      
-      <view class="toolbar-row">
-        <view class="file-count">
-          <text>{{ filteredFiles.length }} 个文件</text>
-        </view>
-        <view class="toolbar-actions">
-          <picker 
-            mode="selector" 
-            :range="sortOptions" 
-            range-key="label"
-            :value="sortOptions.findIndex(o => o.value === fileStore.sortBy)"
-            @change="handleSortFieldChange"
-          >
-            <view class="sort-picker">
-              <text>{{ getSortLabel(fileStore.sortBy) }}</text>
-              <text class="sort-arrow">{{ fileStore.sortOrder === 'desc' ? '↓' : '↑' }}</text>
-            </view>
-          </picker>
-          <view class="view-toggle" @click="toggleViewMode">
-            <text>{{ viewMode === 'list' ? '▦' : '☰' }}</text>
+        <view class="mobile-actions">
+          <view class="mobile-action-btn" @click="toggleTheme">
+            <text>{{ theme === 'dark' ? '☀️' : '🌙' }}</text>
+          </view>
+          <view class="mobile-action-btn" @click="goToSettings">
+            <text>⚙️</text>
           </view>
         </view>
       </view>
+      
+      <!-- 移动端搜索 -->
+      <view class="mobile-search">
+        <view class="mobile-search-box">
+          <text class="search-icon">🔍</text>
+          <input 
+            class="mobile-search-input"
+            v-model="searchQuery"
+            placeholder="搜索文件..."
+            placeholder-class="search-placeholder"
+            @input="handleSearch"
+          />
+          <text v-if="searchQuery" class="search-clear" @click="clearSearch">✕</text>
+        </view>
+      </view>
+    </view>
 
-      <view v-if="showFilterPanel" class="filter-panel">
-        <view class="filter-section">
-          <view class="filter-label">文件类型</view>
-          <view class="filter-tags">
-            <view 
-              v-for="type in fileTypeFilters" 
-              :key="type.value"
-              class="filter-tag"
-              :class="{ active: selectedTypes.includes(type.value) }"
-              @click="toggleTypeFilter(type.value)"
-            >
-              {{ type.label }}
+    <!-- 桌面端布局 -->
+    <view class="desktop-layout">
+      <!-- 侧边栏 -->
+      <view class="sidebar">
+        <view class="sidebar-header">
+          <view class="sidebar-logo">
+            <view class="sidebar-logo-icon">
+              <text>☁️</text>
+            </view>
+            <text class="sidebar-logo-text">轻量云盘</text>
+          </view>
+        </view>
+        
+        <view class="sidebar-nav">
+          <view class="nav-item active">
+            <text class="nav-icon">📁</text>
+            <text class="nav-text">所有文件</text>
+            <text class="nav-badge">{{ fileStore.files.length }}</text>
+          </view>
+          <view class="nav-item" @click="goToSettings">
+            <text class="nav-icon">⚙️</text>
+            <text class="nav-text">设置</text>
+          </view>
+        </view>
+        
+        <view class="sidebar-stats">
+          <view class="stat-card">
+            <text class="stat-label">存储空间</text>
+            <text class="stat-value">{{ formatSize(totalSize) }}</text>
+            <view class="stat-bar">
+              <view class="stat-bar-fill" :style="{ width: storagePercent + '%' }"></view>
             </view>
           </view>
         </view>
         
-        <view class="filter-section">
-          <view class="filter-label">排序方式</view>
-          <view class="filter-tags">
-            <view class="filter-tag" :class="{ active: fileStore.sortBy === 'time' }" @click="setSort('time')">上传时间</view>
-            <view class="filter-tag" :class="{ active: fileStore.sortBy === 'name' }" @click="setSort('name')">文件名</view>
-            <view class="filter-tag" :class="{ active: fileStore.sortBy === 'size' }" @click="setSort('size')">文件大小</view>
+        <view class="sidebar-upload">
+          <view class="sidebar-upload-btn" @click="handleUpload">
+            <text class="upload-icon">+</text>
+            <text class="upload-text">上传文件</text>
           </view>
         </view>
-
-        <view class="filter-section">
-          <view class="filter-label">排序方向</view>
-          <view class="filter-tags">
-            <view class="filter-tag" :class="{ active: fileStore.sortOrder === 'desc' }" @click="setSortOrder('desc')">降序 ↓</view>
-            <view class="filter-tag" :class="{ active: fileStore.sortOrder === 'asc' }" @click="setSortOrder('asc')">升序 ↑</view>
+      </view>
+      
+      <!-- 主内容区 -->
+      <view class="main-content">
+        <!-- 桌面端顶部栏 -->
+        <view class="desktop-topbar">
+          <view class="topbar-left">
+            <text class="topbar-title">所有文件</text>
+            <text class="topbar-count">{{ filteredFiles.length }} 个项目</text>
+          </view>
+          <view class="topbar-right">
+            <view class="topbar-search">
+              <text class="search-icon">🔍</text>
+              <input 
+                class="topbar-search-input"
+                v-model="searchQuery"
+                placeholder="搜索文件..."
+                placeholder-class="search-placeholder"
+                @input="handleSearch"
+              />
+            </view>
+            <view class="topbar-actions">
+              <view class="theme-btn" @click="toggleTheme">
+                <text>{{ theme === 'dark' ? '☀️' : '🌙' }}</text>
+              </view>
+              <view 
+                class="view-btn" 
+                :class="{ active: viewMode === 'list' }"
+                @click="viewMode = 'list'"
+              >
+                <text>☰</text>
+              </view>
+              <view 
+                class="view-btn" 
+                :class="{ active: viewMode === 'grid' }"
+                @click="viewMode = 'grid'"
+              >
+                <text>☷</text>
+              </view>
+              <view class="sort-btn" @click="showSortPanel = true">
+                <text>↕️</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 筛选标签 -->
+        <view class="filter-bar">
+          <scroll-view scroll-x class="filter-scroll">
+            <view class="filter-tags">
+              <view 
+                class="filter-tag" 
+                :class="{ active: selectedTypes.length === 0 }"
+                @click="clearTypeFilter"
+              >
+                <text>全部</text>
+              </view>
+              <view 
+                v-for="type in fileTypeFilters" 
+                :key="type.value"
+                class="filter-tag"
+                :class="{ active: selectedTypes.includes(type.value) }"
+                @click="toggleTypeFilter(type.value)"
+              >
+                <text class="tag-icon">{{ type.icon }}</text>
+                <text>{{ type.label }}</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+        
+        <!-- 文件列表区域 -->
+        <view class="files-area">
+          <!-- 空状态 -->
+          <view v-if="filteredFiles.length === 0 && !fileStore.loading" class="empty-state">
+            <view class="empty-illustration">
+              <view class="empty-circle">
+                <text class="empty-icon">📭</text>
+              </view>
+            </view>
+            <text class="empty-title">暂无文件</text>
+            <text class="empty-desc">点击上传按钮开始管理您的文件</text>
+            <view class="empty-action" @click="handleUpload">
+              <text class="action-icon">+</text>
+              <text>上传文件</text>
+            </view>
+          </view>
+          
+          <!-- 列表视图 -->
+          <view v-if="viewMode === 'list' && filteredFiles.length > 0" class="list-view">
+            <!-- 表头 -->
+            <view class="list-header">
+              <text class="header-name">名称</text>
+              <text class="header-size">大小</text>
+              <text class="header-time">修改时间</text>
+              <text class="header-actions">操作</text>
+            </view>
+            
+            <!-- 文件行 -->
+            <view 
+              v-for="(file, index) in filteredFiles" 
+              :key="file.id"
+              class="list-row"
+              :style="{ animationDelay: index * 0.03 + 's' }"
+              @click="handleItemClick(file)"
+            >
+              <view class="row-name">
+                <view class="file-icon" :style="{ background: getFileGradient(file.mimetype) }">
+                  <text>{{ getFileIcon(file.mimetype) }}</text>
+                </view>
+                <text class="file-name">{{ file.originalName }}</text>
+              </view>
+              <text class="row-size">{{ formatSize(file.size) }}</text>
+              <text class="row-time">{{ formatDate(file.uploadTime) }}</text>
+              <view class="row-actions">
+                <view class="action-btn download" @click.stop="handleDownload(file)">
+                  <text>↓</text>
+                </view>
+                <view class="action-btn delete" @click.stop="handleDelete(file)">
+                  <text>×</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 网格视图 -->
+          <view v-if="viewMode === 'grid' && filteredFiles.length > 0" class="grid-view">
+            <view 
+              v-for="(file, index) in filteredFiles" 
+              :key="file.id"
+              class="grid-card"
+              :style="{ animationDelay: index * 0.03 + 's' }"
+              @click="handleItemClick(file)"
+            >
+              <view class="card-icon" :style="{ background: getFileGradient(file.mimetype) }">
+                <text>{{ getFileIcon(file.mimetype) }}</text>
+              </view>
+              <text class="card-name">{{ file.originalName }}</text>
+              <text class="card-meta">{{ formatSize(file.size) }}</text>
+              <view class="card-actions">
+                <view class="action-btn download" @click.stop="handleDownload(file)">
+                  <text>↓</text>
+                </view>
+                <view class="action-btn delete" @click.stop="handleDelete(file)">
+                  <text>×</text>
+                </view>
+              </view>
+            </view>
           </view>
         </view>
       </view>
     </view>
-
-    <scroll-view 
-      class="content" 
-      scroll-y 
-      refresher-enabled
-      :refresher-triggered="refreshing"
-      @refresherrefresh="handleRefresh"
-    >
-      <view v-if="filteredFiles.length === 0 && !fileStore.loading" class="empty-state">
-        <text class="empty-icon">📭</text>
-        <text class="empty-message">暂无文件</text>
-        <text class="empty-hint">点击下方按钮上传文件</text>
-      </view>
-      
-      <view v-if="viewMode === 'list'" class="list-view">
-        <view v-for="file in filteredFiles" :key="file.id" class="list-item" @click="handleItemClick(file)">
-          <view class="item-icon" :style="{ backgroundColor: getFileIconColor(file.mimetype) }">
-            <text class="icon-emoji">{{ getFileIcon(file.mimetype) }}</text>
-          </view>
-          <view class="item-info">
-            <text class="item-name">{{ file.originalName }}</text>
-            <text class="item-meta">{{ formatSize(file.size) }} · {{ formatDate(file.uploadTime) }}</text>
-          </view>
-          <view class="item-actions">
-            <view class="action-btn" @click.stop="handleDownload(file)">
-              <text>↓</text>
-            </view>
-            <view class="action-btn delete" @click.stop="handleDelete(file)">
-              <text>×</text>
-            </view>
-          </view>
-        </view>
-      </view>
-      
-      <view v-else class="grid-view">
-        <view v-for="file in filteredFiles" :key="file.id" class="grid-item" @click="handleItemClick(file)">
-          <view class="grid-icon" :style="{ backgroundColor: getFileIconColor(file.mimetype) }">
-            <text class="icon-emoji">{{ getFileIcon(file.mimetype) }}</text>
-          </view>
-          <text class="grid-name">{{ file.originalName }}</text>
-          <text class="grid-meta">{{ formatSize(file.size) }}</text>
-          <view class="grid-actions">
-            <view class="action-btn small" @click.stop="handleDownload(file)">
-              <text>↓</text>
-            </view>
-            <view class="action-btn small delete" @click.stop="handleDelete(file)">
-              <text>×</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </scroll-view>
-
-    <view class="upload-bar">
-      <view class="upload-btn" @click="handleUpload">
+    
+    <!-- 移动端底部上传栏 -->
+    <view class="mobile-upload-bar">
+      <view class="mobile-upload-btn" @click="handleUpload">
         <text class="upload-icon">+</text>
         <text class="upload-text">上传文件</text>
       </view>
     </view>
-
-    <view v-if="showUploadPanel" class="upload-modal" @click="closeUploadPanel">
-      <view class="upload-panel" @click.stop>
-        <view class="panel-header">
-          <text class="panel-title">上传文件</text>
-          <view class="close-btn" @click="closeUploadPanel">×</view>
-        </view>
-        <view class="upload-options">
-          <view class="option-btn" @click="chooseImage">
-            <text class="option-icon">🖼️</text>
-            <text class="option-text">选择图片</text>
+    
+    <!-- 移动端底部导航 -->
+    <view class="mobile-tabbar">
+      <view class="tab-item active">
+        <text class="tab-icon">📁</text>
+        <text class="tab-text">文件</text>
+      </view>
+      <view class="tab-item" @click="goToSettings">
+        <text class="tab-icon">⚙️</text>
+        <text class="tab-text">设置</text>
+      </view>
+    </view>
+    
+    <!-- 排序面板 -->
+    <view v-if="showSortPanel" class="modal-overlay" @click="showSortPanel = false">
+      <view class="sort-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">排序方式</text>
+          <view class="modal-close" @click="showSortPanel = false">
+            <text>✕</text>
           </view>
-          <view class="option-btn" @click="chooseFileAction">
-            <text class="option-icon">📁</text>
-            <text class="option-text">选择文件</text>
+        </view>
+        <view class="modal-body">
+          <view 
+            v-for="option in sortOptions" 
+            :key="option.value"
+            class="sort-option"
+            :class="{ active: fileStore.sortBy === option.value }"
+            @click="setSort(option.value)"
+          >
+            <text class="option-icon">{{ option.icon }}</text>
+            <text class="option-text">{{ option.label }}</text>
+            <text v-if="fileStore.sortBy === option.value" class="option-check">✓</text>
+          </view>
+          <view class="sort-divider"></view>
+          <view class="sort-direction">
+            <view 
+              class="direction-btn" 
+              :class="{ active: fileStore.sortOrder === 'desc' }"
+              @click="setSortOrder('desc')"
+            >
+              <text>降序 ↓</text>
+            </view>
+            <view 
+              class="direction-btn" 
+              :class="{ active: fileStore.sortOrder === 'asc' }"
+              @click="setSortOrder('asc')"
+            >
+              <text>升序 ↑</text>
+            </view>
           </view>
         </view>
       </view>
     </view>
-
-    <view v-if="uploading" class="loading-overlay">
-      <view class="loading-content">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">上传中... {{ uploadProgress }}%</text>
+    
+    <!-- 上传面板 -->
+    <view v-if="showUploadPanel" class="modal-overlay" @click="closeUploadPanel">
+      <view class="upload-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">选择上传方式</text>
+          <view class="modal-close" @click="closeUploadPanel">
+            <text>✕</text>
+          </view>
+        </view>
+        <view class="modal-body">
+          <view class="upload-option" @click="chooseImage">
+            <view class="option-icon-wrapper image">
+              <text>🖼️</text>
+            </view>
+            <view class="option-info">
+              <text class="option-title">上传图片</text>
+              <text class="option-desc">从相册选择图片</text>
+            </view>
+          </view>
+          <view class="upload-option" @click="chooseFileAction">
+            <view class="option-icon-wrapper file">
+              <text>📁</text>
+            </view>
+            <view class="option-info">
+              <text class="option-title">上传文件</text>
+              <text class="option-desc">选择任意文件</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 上传进度 -->
+    <view v-if="uploading" class="modal-overlay">
+      <view class="progress-modal">
+        <view class="progress-spinner"></view>
+        <text class="progress-title">正在上传</text>
+        <text class="progress-percent">{{ uploadProgress }}%</text>
+        <view class="progress-bar">
+          <view class="progress-fill" :style="{ width: uploadProgress + '%' }"></view>
+        </view>
       </view>
     </view>
   </view>
@@ -178,28 +355,37 @@ const configStore = useConfigStore()
 
 const searchQuery = ref('')
 const viewMode = ref<'list' | 'grid'>('list')
+const theme = ref<'light' | 'dark'>('light')
 const refreshing = ref(false)
 const showUploadPanel = ref(false)
 const uploading = ref(false)
 const uploadProgress = ref(0)
-const showFilterPanel = ref(false)
+const showSortPanel = ref(false)
 const selectedTypes = ref<string[]>([])
 const statusBarHeight = ref(0)
 
 const fileTypeFilters = [
-  { label: '图片', value: 'image' },
-  { label: '视频', value: 'video' },
-  { label: '音频', value: 'audio' },
-  { label: '文档', value: 'document' },
-  { label: '压缩包', value: 'archive' },
-  { label: '其他', value: 'other' }
+  { label: '图片', value: 'image', icon: '🖼️' },
+  { label: '视频', value: 'video', icon: '🎬' },
+  { label: '音频', value: 'audio', icon: '🎵' },
+  { label: '文档', value: 'document', icon: '📄' },
+  { label: '压缩包', value: 'archive', icon: '📦' },
 ]
 
 const sortOptions = [
-  { label: '按时间', value: 'time' as const },
-  { label: '按名称', value: 'name' as const },
-  { label: '按大小', value: 'size' as const }
+  { label: '上传时间', value: 'time' as const, icon: '🕐' },
+  { label: '文件名称', value: 'name' as const, icon: '🔤' },
+  { label: '文件大小', value: 'size' as const, icon: '📏' },
 ]
+
+const totalSize = computed(() => {
+  return fileStore.files.reduce((sum, file) => sum + (file.size || 0), 0)
+})
+
+const storagePercent = computed(() => {
+  const maxStorage = 1024 * 1024 * 1024 // 1GB
+  return Math.min((totalSize.value / maxStorage) * 100, 100)
+})
 
 const filteredFiles = computed(() => {
   let result = [...fileStore.files]
@@ -248,17 +434,25 @@ function getFileType(mimetype: string): string {
   return 'other'
 }
 
-function getSortLabel(sortBy: 'name' | 'time' | 'size'): string {
-  const map: Record<string, string> = { name: '名称', time: '时间', size: '大小' }
-  return map[sortBy] || '时间'
+function getFileGradient(mimetype: string): string {
+  const type = getFileType(mimetype)
+  const gradients: Record<string, string> = {
+    image: 'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)',
+    video: 'linear-gradient(135deg, #818CF8 0%, #6366F1 100%)',
+    audio: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
+    document: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)',
+    archive: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
+    other: 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
+  }
+  return gradients[type] || gradients.other
 }
 
 function formatSize(bytes: number): string {
   return formatFileSize(bytes)
 }
 
-function toggleFilterPanel() {
-  showFilterPanel.value = !showFilterPanel.value
+function goToSettings() {
+  uni.switchTab({ url: '/pages/settings/index' })
 }
 
 function toggleTypeFilter(type: string) {
@@ -270,29 +464,32 @@ function toggleTypeFilter(type: string) {
   }
 }
 
-function handleSortFieldChange(e: any) {
-  const field = sortOptions[e.detail.value].value
-  fileStore.setSort(field, fileStore.sortOrder)
+function clearTypeFilter() {
+  selectedTypes.value = []
 }
 
 function setSort(field: 'name' | 'time' | 'size') {
-  if (fileStore.sortBy === field) {
-    fileStore.setSort(field, fileStore.sortOrder === 'desc' ? 'asc' : 'desc')
-  } else {
-    fileStore.setSort(field, 'desc')
-  }
+  fileStore.setSort(field, fileStore.sortOrder)
 }
 
 function setSortOrder(order: 'asc' | 'desc') {
   fileStore.setSort(fileStore.sortBy, order)
+  showSortPanel.value = false
 }
 
 onMounted(() => {
   const sysInfo = uni.getSystemInfoSync()
   statusBarHeight.value = sysInfo.statusBarHeight || 0
   viewMode.value = configStore.viewMode as 'list' | 'grid'
+  theme.value = configStore.theme as 'light' | 'dark'
   loadFiles()
 })
+
+function toggleTheme() {
+  const newTheme = theme.value === 'light' ? 'dark' : 'light'
+  theme.value = newTheme
+  configStore.setTheme(newTheme)
+}
 
 onShow(() => {
   loadFiles()
@@ -306,12 +503,6 @@ async function loadFiles() {
   }
 }
 
-async function handleRefresh() {
-  refreshing.value = true
-  await loadFiles()
-  refreshing.value = false
-}
-
 function handleSearch() {
   fileStore.setSearchQuery(searchQuery.value)
 }
@@ -319,11 +510,6 @@ function handleSearch() {
 function clearSearch() {
   searchQuery.value = ''
   fileStore.setSearchQuery('')
-}
-
-function toggleViewMode() {
-  viewMode.value = viewMode.value === 'list' ? 'grid' : 'list'
-  configStore.setViewMode(viewMode.value)
 }
 
 function handleItemClick(file: FileInfo) {
@@ -346,7 +532,8 @@ function handleDownload(file: FileInfo) {
 async function handleDelete(file: FileInfo) {
   uni.showModal({
     title: '确认删除',
-    content: `确定要删除文件 "${file.originalName}" 吗？`,
+    content: `确定要删除 "${file.originalName}" 吗？`,
+    confirmColor: '#EF4444',
     success: async (res) => {
       if (res.confirm) {
         try {
@@ -416,142 +603,710 @@ async function uploadFiles(filePaths: string[]) {
 </script>
 
 <style lang="scss" scoped>
-.page-index {
+.page {
+  min-height: 100vh;
+  background: $bg-page;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background-color: #f5f5f5;
-  overflow: hidden;
 }
 
-.header {
-  flex-shrink: 0;
-  background: #4CAF50;
-  padding: 0 24rpx 16rpx;
-
-  .search-row {
-    display: flex;
-    align-items: center;
-    gap: 16rpx;
-    margin-bottom: 12rpx;
-
-    .search-bar {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      height: 72rpx;
-      padding: 0 24rpx;
-      background: #ffffff;
-      border-radius: 36rpx;
-
-      .search-icon {
-        margin-right: 12rpx;
-        font-size: 28rpx;
-      }
-
-      .search-input {
-        flex: 1;
-        height: 100%;
-        font-size: 28rpx;
-      }
-
-      .clear-icon {
-        padding: 8rpx;
-        font-size: 24rpx;
-        color: #999;
-      }
-    }
-
-    .filter-btn {
-      height: 72rpx;
-      padding: 0 24rpx;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 36rpx;
-      display: flex;
-      align-items: center;
-      font-size: 26rpx;
-      color: #ffffff;
-    }
+// ========== 移动端样式 ==========
+.mobile-header {
+  display: block;
+  position: relative;
+  background: $brand-gradient;
+  padding: $space-4;
+  padding-top: calc(#{$space-4} + #{$safe-top});
+  
+  @include respond-above('md') {
+    display: none;
   }
-
-  .toolbar-row {
+  
+  .mobile-header-bg {
+    position: absolute;
+    inset: 0;
+    opacity: 0.1;
+    background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 50%);
+  }
+  
+  .mobile-header-content {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    .file-count {
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.8);
+    margin-bottom: $space-4;
+  }
+  
+  .mobile-logo {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    
+    .mobile-logo-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: $radius-lg;
+      @include flex-center;
+      font-size: 22px;
     }
-
-    .toolbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 16rpx;
-
-      .sort-picker {
-        display: flex;
-        align-items: center;
-        padding: 8rpx 16rpx;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 20rpx;
-        font-size: 24rpx;
-        color: #ffffff;
-
-        .sort-arrow {
-          margin-left: 8rpx;
-        }
+    
+    .mobile-logo-text {
+      .mobile-app-name {
+        display: block;
+        font-size: $font-size-xl;
+        font-weight: $font-weight-bold;
+        color: $text-inverse;
       }
-
-      .view-toggle {
-        width: 56rpx;
-        height: 56rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        font-size: 28rpx;
-        color: #ffffff;
+      
+      .mobile-app-desc {
+        display: block;
+        font-size: $font-size-xs;
+        color: rgba(255, 255, 255, 0.7);
       }
     }
   }
-
-  .filter-panel {
-    margin-top: 16rpx;
-    padding: 24rpx;
-    background: #ffffff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.15);
-
-    .filter-section {
-      margin-bottom: 24rpx;
-
-      &:last-child {
-        margin-bottom: 0;
+  
+  .mobile-actions {
+    display: flex;
+    gap: $space-2;
+    
+    .mobile-action-btn {
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: $radius-full;
+      @include flex-center;
+      font-size: 18px;
+    }
+  }
+  
+  .mobile-search {
+    position: relative;
+    
+    .mobile-search-box {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: $radius-full;
+      padding: 0 $space-4;
+      height: 44px;
+      box-shadow: $shadow-md;
+      
+      .search-icon {
+        font-size: 16px;
+        margin-right: $space-2;
       }
-
-      .filter-label {
-        font-size: 24rpx;
-        color: #666;
-        margin-bottom: 16rpx;
+      
+      .mobile-search-input {
+        flex: 1;
+        height: 100%;
+        font-size: $font-size-base;
       }
+      
+      .search-placeholder {
+        color: $text-tertiary;
+      }
+      
+      .search-clear {
+        padding: $space-1;
+        font-size: $font-size-sm;
+        color: $text-secondary;
+      }
+    }
+  }
+}
 
-      .filter-tags {
+.mobile-upload-bar {
+  display: block;
+  padding: $space-3 $space-4;
+  background: $bg-card;
+  border-top: 1px solid $border-subtle;
+  
+  @include respond-above('md') {
+    display: none;
+  }
+  
+  .mobile-upload-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-2;
+    height: 48px;
+    background: $brand-gradient;
+    border-radius: $radius-full;
+    color: $text-inverse;
+    font-weight: $font-weight-semibold;
+    box-shadow: $shadow-colored;
+    
+    .upload-icon {
+      font-size: 20px;
+    }
+  }
+}
+
+.mobile-tabbar {
+  display: flex;
+  background: $bg-card;
+  border-top: 1px solid $border-subtle;
+  padding-bottom: $safe-bottom;
+  
+  @include respond-above('md') {
+    display: none;
+  }
+  
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: $space-2 0;
+    color: $text-tertiary;
+    
+    &.active {
+      color: $brand-primary;
+    }
+    
+    .tab-icon {
+      font-size: 20px;
+    }
+    
+    .tab-text {
+      font-size: $font-size-xs;
+    }
+  }
+}
+
+// ========== 桌面端样式 ==========
+.desktop-layout {
+  display: none;
+  flex: 1;
+  
+  @include respond-above('md') {
+    display: flex;
+  }
+}
+
+.sidebar {
+  width: $sidebar-width;
+  background: $bg-card;
+  border-right: 1px solid $border-subtle;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  
+  .sidebar-header {
+    padding: $space-6;
+    border-bottom: 1px solid $border-subtle;
+    
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: $space-3;
+      
+      .sidebar-logo-icon {
+        width: 40px;
+        height: 40px;
+        background: $brand-gradient;
+        border-radius: $radius-lg;
+        @include flex-center;
+        font-size: 20px;
+        box-shadow: $shadow-colored;
+      }
+      
+      .sidebar-logo-text {
+        font-size: $font-size-lg;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
+      }
+    }
+  }
+  
+  .sidebar-nav {
+    padding: $space-4 $space-3;
+    flex: 1;
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: $space-3;
+      padding: $space-3 $space-4;
+      border-radius: $radius-lg;
+      color: $text-secondary;
+      cursor: pointer;
+      transition: $transition-base;
+      margin-bottom: $space-1;
+      
+      &:hover {
+        background: $bg-sunken;
+        color: $text-primary;
+      }
+      
+      &.active {
+        background: $brand-gradient-subtle;
+        color: $brand-primary;
+      }
+      
+      .nav-icon {
+        font-size: 18px;
+      }
+      
+      .nav-text {
+        flex: 1;
+        font-size: $font-size-base;
+        font-weight: $font-weight-medium;
+      }
+      
+      .nav-badge {
+        font-size: $font-size-xs;
+        background: $bg-sunken;
+        padding: 2px 8px;
+        border-radius: $radius-full;
+        color: $text-secondary;
+      }
+    }
+  }
+  
+  .sidebar-stats {
+    padding: $space-4;
+    
+    .stat-card {
+      background: $bg-sunken;
+      border-radius: $radius-lg;
+      padding: $space-4;
+      
+      .stat-label {
+        display: block;
+        font-size: $font-size-xs;
+        color: $text-secondary;
+        margin-bottom: $space-1;
+      }
+      
+      .stat-value {
+        display: block;
+        font-size: $font-size-lg;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
+        margin-bottom: $space-3;
+      }
+      
+      .stat-bar {
+        height: 4px;
+        background: $gray-200;
+        border-radius: $radius-full;
+        overflow: hidden;
+        
+        .stat-bar-fill {
+          height: 100%;
+          background: $brand-gradient;
+          border-radius: $radius-full;
+          transition: width 0.5s ease;
+        }
+      }
+    }
+  }
+  
+  .sidebar-upload {
+    padding: $space-4;
+    
+    .sidebar-upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: $space-2;
+      height: 44px;
+      background: $brand-gradient;
+      border-radius: $radius-lg;
+      color: $text-inverse;
+      font-weight: $font-weight-semibold;
+      cursor: pointer;
+      transition: $transition-base;
+      box-shadow: $shadow-colored;
+      
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 20px -5px rgba($brand-primary, 0.4);
+      }
+      
+      .upload-icon {
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  
+  .desktop-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $space-4 $space-6;
+    background: $bg-card;
+    border-bottom: 1px solid $border-subtle;
+    position: sticky;
+    top: 0;
+    z-index: $z-sticky;
+    
+    .topbar-left {
+      .topbar-title {
+        display: block;
+        font-size: $font-size-xl;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
+      }
+      
+      .topbar-count {
+        display: block;
+        font-size: $font-size-sm;
+        color: $text-secondary;
+      }
+    }
+    
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: $space-4;
+      
+      .topbar-search {
         display: flex;
-        flex-wrap: wrap;
-        gap: 12rpx;
-
-        .filter-tag {
-          padding: 8rpx 20rpx;
-          background: #f5f5f5;
-          border-radius: 20rpx;
-          font-size: 24rpx;
-          color: #666;
-
+        align-items: center;
+        background: $bg-sunken;
+        border-radius: $radius-full;
+        padding: 0 $space-4;
+        height: 40px;
+        width: 280px;
+        
+        .search-icon {
+          font-size: 14px;
+          margin-right: $space-2;
+          color: $text-tertiary;
+        }
+        
+        .topbar-search-input {
+          flex: 1;
+          height: 100%;
+          font-size: $font-size-sm;
+          background: transparent;
+        }
+        
+        .search-placeholder {
+          color: $text-tertiary;
+        }
+      }
+      
+        .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: $space-1;
+        background: $bg-sunken;
+        border-radius: $radius-lg;
+        padding: $space-1;
+        
+        .theme-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: $radius-md;
+          @include flex-center;
+          font-size: 16px;
+          color: $text-secondary;
+          cursor: pointer;
+          transition: $transition-base;
+          margin-right: $space-1;
+          
+          &:hover {
+            color: $text-primary;
+            background: $bg-card;
+          }
+        }
+        
+        .view-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: $radius-md;
+          @include flex-center;
+          font-size: 16px;
+          color: $text-secondary;
+          cursor: pointer;
+          transition: $transition-base;
+          
+          &:hover {
+            color: $text-primary;
+          }
+          
           &.active {
-            background: #4CAF50;
-            color: #ffffff;
+            background: $bg-card;
+            color: $brand-primary;
+            box-shadow: $shadow-xs;
+          }
+        }
+        
+        .sort-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: $radius-md;
+          @include flex-center;
+          font-size: 16px;
+          color: $text-secondary;
+          cursor: pointer;
+          transition: $transition-base;
+          margin-left: $space-1;
+          
+          &:hover {
+            color: $text-primary;
+            background: $bg-card;
+          }
+        }
+      }
+    }
+  }
+  
+  .filter-bar {
+    padding: $space-4 $space-6;
+    background: $bg-card;
+    border-bottom: 1px solid $border-subtle;
+    
+    .filter-scroll {
+      white-space: nowrap;
+    }
+    
+    .filter-tags {
+      display: inline-flex;
+      gap: $space-2;
+      
+      .filter-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: $space-1;
+        padding: $space-2 $space-4;
+        background: $bg-sunken;
+        border-radius: $radius-full;
+        font-size: $font-size-sm;
+        color: $text-secondary;
+        cursor: pointer;
+        transition: $transition-base;
+        
+        &:hover {
+          background: $gray-200;
+          color: $text-primary;
+        }
+        
+        .tag-icon {
+          font-size: 14px;
+        }
+        
+        &.active {
+          background: $brand-primary;
+          color: $text-inverse;
+        }
+      }
+    }
+  }
+  
+  .files-area {
+    flex: 1;
+    padding: $space-6;
+    overflow-y: auto;
+  }
+}
+
+// ========== 空状态 ==========
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $space-16 $space-8;
+  
+  .empty-illustration {
+    margin-bottom: $space-8;
+    
+    .empty-circle {
+      width: 120px;
+      height: 120px;
+      background: $brand-gradient-subtle;
+      border-radius: $radius-full;
+      @include flex-center;
+      
+      .empty-icon {
+        font-size: 48px;
+      }
+    }
+  }
+  
+  .empty-title {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    margin-bottom: $space-2;
+  }
+  
+  .empty-desc {
+    font-size: $font-size-base;
+    color: $text-secondary;
+    margin-bottom: $space-8;
+  }
+  
+  .empty-action {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-3 $space-6;
+    background: $brand-gradient;
+    border-radius: $radius-full;
+    color: $text-inverse;
+    font-weight: $font-weight-semibold;
+    cursor: pointer;
+    transition: $transition-base;
+    box-shadow: $shadow-colored;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 20px -5px rgba($brand-primary, 0.4);
+    }
+    
+    .action-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+// ========== 列表视图 ==========
+.list-view {
+  @include card;
+  overflow: hidden;
+  
+  .list-header {
+    display: none;
+    
+    @include respond-above('md') {
+      display: flex;
+      align-items: center;
+      padding: $space-3 $space-4;
+      background: $bg-sunken;
+      border-bottom: 1px solid $border-subtle;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      
+      .header-name { flex: 1; min-width: 0; }
+      .header-size { width: 100px; text-align: right; }
+      .header-time { width: 150px; text-align: right; }
+      .header-actions { width: 100px; text-align: right; }
+    }
+  }
+  
+  .list-row {
+    display: flex;
+    align-items: center;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $border-subtle;
+    cursor: pointer;
+    transition: $transition-base;
+    animation: fadeInUp $duration-slow $ease-out both;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    &:hover {
+      background: $bg-sunken;
+    }
+    
+    .row-name {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: $space-3;
+      min-width: 0;
+      
+      .file-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: $radius-md;
+        @include flex-center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      
+      .file-name {
+        font-size: $font-size-base;
+        font-weight: $font-weight-medium;
+        color: $text-primary;
+        @include text-truncate;
+      }
+    }
+    
+    .row-size,
+    .row-time {
+      display: none;
+      
+      @include respond-above('md') {
+        display: block;
+        font-size: $font-size-sm;
+        color: $text-secondary;
+      }
+    }
+    
+    .row-size {
+      @include respond-above('md') {
+        width: 100px;
+        text-align: right;
+      }
+    }
+    
+    .row-time {
+      @include respond-above('md') {
+        width: 150px;
+        text-align: right;
+      }
+    }
+    
+    .row-actions {
+      display: flex;
+      gap: $space-2;
+      margin-left: $space-4;
+      
+      @include respond-above('md') {
+        width: 100px;
+        justify-content: flex-end;
+      }
+      
+      .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: $radius-full;
+        @include flex-center;
+        font-size: 14px;
+        font-weight: $font-weight-bold;
+        cursor: pointer;
+        transition: $transition-base;
+        
+        &.download {
+          background: rgba($color-info, 0.1);
+          color: $color-info;
+          
+          &:hover {
+            background: rgba($color-info, 0.2);
+          }
+        }
+        
+        &.delete {
+          background: rgba($color-danger, 0.1);
+          color: $color-danger;
+          
+          &:hover {
+            background: rgba($color-danger, 0.2);
           }
         }
       }
@@ -559,313 +1314,322 @@ async function uploadFiles(filePaths: string[]) {
   }
 }
 
-.content {
-  flex: 1;
-  height: 0;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 120rpx 40rpx;
-
-  .empty-icon {
-    font-size: 120rpx;
-    margin-bottom: 32rpx;
-  }
-
-  .empty-message {
-    font-size: 32rpx;
-    color: #333;
-    margin-bottom: 16rpx;
-  }
-
-  .empty-hint {
-    font-size: 24rpx;
-    color: #999;
-  }
-}
-
-.list-view {
-  padding: 16rpx 24rpx 0;
-
-  .list-item {
-    display: flex;
-    align-items: center;
-    padding: 24rpx;
-    background: #ffffff;
-    border-radius: 16rpx;
-    margin-bottom: 16rpx;
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
-
-    .item-icon {
-      width: 88rpx;
-      height: 88rpx;
-      border-radius: 16rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 24rpx;
-      flex-shrink: 0;
-
-      .icon-emoji {
-        font-size: 40rpx;
-      }
-    }
-
-    .item-info {
-      flex: 1;
-      min-width: 0;
-
-      .item-name {
-        display: block;
-        font-size: 28rpx;
-        color: #333;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        margin-bottom: 8rpx;
-      }
-
-      .item-meta {
-        display: block;
-        font-size: 24rpx;
-        color: #999;
-      }
-    }
-
-    .item-actions {
-      display: flex;
-      gap: 16rpx;
-      flex-shrink: 0;
-
-      .action-btn {
-        width: 64rpx;
-        height: 64rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f0f0f0;
-        border-radius: 50%;
-        font-size: 28rpx;
-        color: #666;
-
-        &.delete {
-          background: #fee;
-          color: #f56c6c;
-        }
-      }
-    }
-  }
-}
-
+// ========== 网格视图 ==========
 .grid-view {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16rpx;
-  padding: 16rpx 24rpx 0;
-
-  .grid-item {
-    background: #ffffff;
-    border-radius: 16rpx;
-    padding: 24rpx;
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
-
-    .grid-icon {
-      width: 80rpx;
-      height: 80rpx;
-      border-radius: 16rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 16rpx;
-
-      .icon-emoji {
-        font-size: 36rpx;
-      }
-    }
-
-    .grid-name {
-      display: block;
-      font-size: 26rpx;
-      color: #333;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      text-align: center;
-      margin-bottom: 8rpx;
-    }
-
-    .grid-meta {
-      display: block;
-      font-size: 22rpx;
-      color: #999;
-      text-align: center;
-      margin-bottom: 16rpx;
-    }
-
-    .grid-actions {
-      display: flex;
-      justify-content: center;
-      gap: 16rpx;
-
-      .action-btn {
-        width: 56rpx;
-        height: 56rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f0f0f0;
-        border-radius: 50%;
-        font-size: 24rpx;
-        color: #666;
-
-        &.delete {
-          background: #fee;
-          color: #f56c6c;
-        }
-      }
-    }
+  gap: $space-4;
+  
+  @include respond-above('sm') {
+    grid-template-columns: repeat(3, 1fr);
   }
-}
-
-.upload-bar {
-  flex-shrink: 0;
-  padding: 16rpx 24rpx;
-  padding-bottom: calc(16rpx + constant(safe-area-inset-bottom));
-  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
-  background: #ffffff;
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.08);
-  z-index: 100;
-
-  .upload-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 96rpx;
-    background: #4CAF50;
-    border-radius: 48rpx;
-    color: #ffffff;
-    font-size: 32rpx;
-
-    .upload-icon {
-      font-size: 40rpx;
-      margin-right: 12rpx;
-    }
+  
+  @include respond-above('lg') {
+    grid-template-columns: repeat(4, 1fr);
   }
-}
-
-.upload-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: flex-end;
-  z-index: 1000;
-
-  .upload-panel {
-    width: 100%;
-    background: #ffffff;
-    border-radius: 32rpx 32rpx 0 0;
-    padding: 32rpx;
-    padding-bottom: calc(32rpx + constant(safe-area-inset-bottom));
-    padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
-
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 32rpx;
-
-      .panel-title {
-        font-size: 32rpx;
-        font-weight: 600;
-        color: #333;
-      }
-
-      .close-btn {
-        width: 64rpx;
-        height: 64rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f5f5f5;
-        border-radius: 50%;
-        font-size: 40rpx;
-        color: #666;
-      }
-    }
-
-    .upload-options {
-      display: flex;
-      gap: 24rpx;
-
-      .option-btn {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 48rpx 24rpx;
-        background: #f5f5f5;
-        border-radius: 24rpx;
-
-        .option-icon {
-          font-size: 64rpx;
-          margin-bottom: 16rpx;
-        }
-
-        .option-text {
-          font-size: 28rpx;
-          color: #333;
-        }
-      }
-    }
+  
+  @include respond-above('xl') {
+    grid-template-columns: repeat(5, 1fr);
   }
-}
-
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-
-  .loading-content {
+  
+  .grid-card {
+    @include card;
+    @include card-hover;
+    padding: $space-4;
     display: flex;
     flex-direction: column;
     align-items: center;
-
-    .loading-spinner {
-      width: 80rpx;
-      height: 80rpx;
-      border: 6rpx solid #ffffff;
-      border-top-color: #4CAF50;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+    cursor: pointer;
+    animation: fadeInUp $duration-slow $ease-out both;
+    
+    .card-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: $radius-lg;
+      @include flex-center;
+      font-size: 28px;
+      margin-bottom: $space-3;
     }
-
-    .loading-text {
-      margin-top: 24rpx;
-      font-size: 28rpx;
-      color: #ffffff;
+    
+    .card-name {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $text-primary;
+      text-align: center;
+      @include text-truncate;
+      width: 100%;
+      margin-bottom: $space-1;
+    }
+    
+    .card-meta {
+      font-size: $font-size-xs;
+      color: $text-secondary;
+      margin-bottom: $space-3;
+    }
+    
+    .card-actions {
+      display: flex;
+      gap: $space-2;
+      opacity: 0;
+      transition: $transition-base;
+      
+      .action-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: $radius-full;
+        @include flex-center;
+        font-size: 12px;
+        font-weight: $font-weight-bold;
+        cursor: pointer;
+        transition: $transition-base;
+        
+        &.download {
+          background: rgba($color-info, 0.1);
+          color: $color-info;
+          
+          &:hover {
+            background: rgba($color-info, 0.2);
+          }
+        }
+        
+        &.delete {
+          background: rgba($color-danger, 0.1);
+          color: $color-danger;
+          
+          &:hover {
+            background: rgba($color-danger, 0.2);
+          }
+        }
+      }
+    }
+    
+    &:hover .card-actions {
+      opacity: 1;
     }
   }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+// ========== 模态框 ==========
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: $z-modal-backdrop;
+  @include flex-center;
+  
+  @include respond-below('md') {
+    align-items: flex-end;
+  }
+}
+
+.sort-modal,
+.upload-modal,
+.progress-modal {
+  background: $bg-card;
+  border-radius: $radius-2xl;
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: fadeInScale $duration-slow $ease-out;
+  
+  @include respond-below('md') {
+    width: 100%;
+    border-radius: $radius-2xl $radius-2xl 0 0;
+    animation: slideUp $duration-slow $ease-out;
+  }
+  
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $space-5 $space-6;
+    border-bottom: 1px solid $border-subtle;
+    
+    .modal-title {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+    }
+    
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: $radius-full;
+      @include flex-center;
+      font-size: 16px;
+      color: $text-secondary;
+      cursor: pointer;
+      transition: $transition-base;
+      
+      &:hover {
+        background: $bg-sunken;
+        color: $text-primary;
+      }
+    }
+  }
+  
+  .modal-body {
+    padding: $space-4 $space-6 $space-6;
+  }
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: $transition-base;
+  margin-bottom: $space-1;
+  
+  &:hover {
+    background: $bg-sunken;
+  }
+  
+  .option-icon {
+    font-size: 18px;
+  }
+  
+  .option-text {
+    flex: 1;
+    font-size: $font-size-base;
+    color: $text-primary;
+  }
+  
+  .option-check {
+    font-size: 16px;
+    color: $brand-primary;
+    font-weight: $font-weight-bold;
+  }
+  
+  &.active {
+    background: $brand-gradient-subtle;
+  }
+}
+
+.sort-divider {
+  height: 1px;
+  background: $border-subtle;
+  margin: $space-3 0;
+}
+
+.sort-direction {
+  display: flex;
+  gap: $space-2;
+  
+  .direction-btn {
+    flex: 1;
+    height: 40px;
+    background: $bg-sunken;
+    border-radius: $radius-lg;
+    @include flex-center;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    cursor: pointer;
+    transition: $transition-base;
+    
+    &:hover {
+      background: $gray-200;
+    }
+    
+    &.active {
+      background: $brand-primary;
+      color: $text-inverse;
+    }
+  }
+}
+
+.upload-option {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-4;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: $transition-base;
+  margin-bottom: $space-2;
+  
+  &:hover {
+    background: $bg-sunken;
+  }
+  
+  .option-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: $radius-lg;
+    @include flex-center;
+    font-size: 24px;
+    
+    &.image {
+      background: linear-gradient(135deg, #F472B6 0%, #EC4899 100%);
+    }
+    
+    &.file {
+      background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
+    }
+  }
+  
+  .option-info {
+    .option-title {
+      display: block;
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+    }
+    
+    .option-desc {
+      display: block;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+    }
+  }
+}
+
+.progress-modal {
+  padding: $space-10 $space-8;
+  text-align: center;
+  
+  .progress-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid $gray-200;
+    border-top-color: $brand-primary;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto $space-4;
+  }
+  
+  .progress-title {
+    display: block;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    margin-bottom: $space-1;
+  }
+  
+  .progress-percent {
+    display: block;
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $brand-primary;
+    margin-bottom: $space-4;
+  }
+  
+  .progress-bar {
+    height: 6px;
+    background: $gray-200;
+    border-radius: $radius-full;
+    overflow: hidden;
+    
+    .progress-fill {
+      height: 100%;
+      background: $brand-gradient;
+      border-radius: $radius-full;
+      transition: width 0.3s ease;
+    }
   }
 }
 </style>

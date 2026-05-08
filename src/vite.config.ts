@@ -15,7 +15,7 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@import "${resolve(__dirname, 'src/styles/variables').replace(/\\/g, '/')}";`
+        additionalData: `@import "${resolve(__dirname, 'src/styles/variables').replace(/\\/g, '/')}"; @import "${resolve(__dirname, 'src/styles/mixins').replace(/\\/g, '/')}";`
       }
     }
   },

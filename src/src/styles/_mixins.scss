@@ -1,3 +1,8 @@
+// ============================================
+// 轻量云盘 - Mixins 工具库
+// ============================================
+
+// 弹性布局
 @mixin flex-center {
   display: flex;
   align-items: center;
@@ -10,62 +15,274 @@
   justify-content: space-between;
 }
 
+@mixin flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 @mixin flex-column {
   display: flex;
   flex-direction: column;
 }
 
-@mixin text-ellipsis {
+@mixin flex-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+// 文本处理
+@mixin text-truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-@mixin text-ellipsis-2 {
+@mixin text-clamp($lines: 2) {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: $lines;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-@mixin transition-all {
-  transition: all 0.3s ease;
+// 响应式
+@mixin respond-above($breakpoint) {
+  @if $breakpoint == 'sm' {
+    @media (min-width: $bp-sm) { @content; }
+  } @else if $breakpoint == 'md' {
+    @media (min-width: $bp-md) { @content; }
+  } @else if $breakpoint == 'lg' {
+    @media (min-width: $bp-lg) { @content; }
+  } @else if $breakpoint == 'xl' {
+    @media (min-width: $bp-xl) { @content; }
+  } @else if $breakpoint == '2xl' {
+    @media (min-width: $bp-2xl) { @content; }
+  }
 }
 
-@mixin transition-transform {
-  transition: transform 0.3s ease;
+@mixin respond-below($breakpoint) {
+  @if $breakpoint == 'sm' {
+    @media (max-width: ($bp-sm - 1px)) { @content; }
+  } @else if $breakpoint == 'md' {
+    @media (max-width: ($bp-md - 1px)) { @content; }
+  } @else if $breakpoint == 'lg' {
+    @media (max-width: ($bp-lg - 1px)) { @content; }
+  }
 }
 
-@mixin card-style {
-  background-color: #ffffff;
-  border-radius: $border-radius-base;
-  box-shadow: $box-shadow-light;
+// 容器
+@mixin container {
+  width: 100%;
+  max-width: $content-max-width;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: $space-4;
+  padding-right: $space-4;
+  
+  @include respond-above('sm') {
+    padding-left: $space-6;
+    padding-right: $space-6;
+  }
+  
+  @include respond-above('lg') {
+    padding-left: $space-8;
+    padding-right: $space-8;
+  }
 }
 
+// 卡片
+@mixin card {
+  background: $bg-card;
+  border-radius: $radius-xl;
+  border: 1px solid $border-subtle;
+  box-shadow: $shadow-xs;
+  transition: $transition-base;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: $shadow-md;
+    border-color: $border-default;
+    transform: translateY(-1px);
+  }
+}
+
+// 按钮基础
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  font-weight: $font-weight-medium;
+  border-radius: $radius-lg;
+  transition: $transition-base;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// 输入框
+@mixin input-base {
+  width: 100%;
+  background: $bg-card;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  padding: $space-3 $space-4;
+  font-size: $font-size-base;
+  color: $text-primary;
+  transition: $transition-base;
+  
+  &::placeholder {
+    color: $text-tertiary;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: $brand-primary;
+    box-shadow: 0 0 0 3px rgba($brand-primary, 0.1);
+  }
+}
+
+// 图标容器
+@mixin icon-wrapper($size: 40px, $radius: $radius-lg) {
+  width: $size;
+  height: $size;
+  border-radius: $radius;
+  @include flex-center;
+  flex-shrink: 0;
+}
+
+// 渐变背景
+@mixin gradient-bg {
+  background: $brand-gradient;
+  color: $text-inverse;
+}
+
+// 玻璃效果
+@mixin glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+// 滚动条
+@mixin scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $gray-300;
+    border-radius: $radius-full;
+    
+    &:hover {
+      background: $gray-400;
+    }
+  }
+}
+
+// 安全区域
 @mixin safe-area-bottom {
-  padding-bottom: constant(safe-area-inset-bottom);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: calc(#{$space-4} + #{$safe-bottom});
 }
 
-@mixin safe-area-top {
-  padding-top: constant(safe-area-inset-top);
-  padding-top: env(safe-area-inset-top);
+// 动画关键帧
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-@mixin button-reset {
-  padding: 0;
-  margin: 0;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: inherit;
-  line-height: inherit;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@mixin input-reset {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: inherit;
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// 动画工具类
+.animate-fade-in {
+  animation: fadeIn $duration-normal $ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp $duration-slow $ease-out;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale $duration-slow $ease-out;
+}
+
+// 骨架屏
+@mixin skeleton {
+  background: linear-gradient(90deg, $gray-100 25%, $gray-200 50%, $gray-100 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: $radius-md;
 }
