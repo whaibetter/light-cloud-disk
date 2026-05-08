@@ -185,7 +185,9 @@ scroll-view {
 
 // 桌面端隐藏原生 tabBar
 @include respond-above('md') {
-  .uni-tabbar {
+  uni-tabbar,
+  .uni-tabbar,
+  .uni-tabbar-bottom {
     display: none !important;
   }
 }

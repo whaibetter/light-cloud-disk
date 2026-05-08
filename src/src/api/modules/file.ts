@@ -8,9 +8,10 @@ export const fileApi = {
 
   async uploadFile(
     filePath: string,
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    file?: File
   ): Promise<UploadResponse> {
-    return apiClient.uploadFile('/api/upload', filePath, 'files', onProgress)
+    return apiClient.uploadFile('/api/upload', filePath, 'files', onProgress, file)
   },
 
   async deleteFile(fileName: string): Promise<DeleteResponse> {

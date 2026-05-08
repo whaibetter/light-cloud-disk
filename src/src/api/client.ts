@@ -120,13 +120,52 @@ class ApiClient {
     url: string,
     filePath: string,
     name: string = 'files',
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    file?: File
   ): Promise<any> {
     this.updateConfig()
 
-    return new Promise((resolve, reject) => {
-      const fullUrl = this.buildUrl(url)
+    const fullUrl = this.buildUrl(url)
 
+    // #ifdef H5
+    // H5 端使用 XMLHttpRequest 以支持文件名
+    if (file) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        const formData = new FormData()
+        formData.append(name, file, file.name)
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && onProgress) {
+            onProgress(Math.round((e.loaded / e.total) * 100))
+          }
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText)
+              resolve(data)
+            } catch {
+              reject(new Error('Invalid response format'))
+            }
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status}`))
+          }
+        }
+
+        xhr.onerror = () => {
+          reject(new Error('Network request failed'))
+        }
+
+        xhr.open('POST', fullUrl)
+        xhr.setRequestHeader('X-API-Key', this.apiKey)
+        xhr.send(formData)
+      })
+    }
+    // #endif
+
+    return new Promise((resolve, reject) => {
       const uploadTask = uni.uploadFile({
         url: fullUrl,
         filePath,
@@ -147,7 +186,7 @@ class ApiClient {
           }
         },
         fail: (err) => {
-          reject(new Error(err.errMsg || 'Upload failed'))
+          reject(new Error(err.errMsg || 'Network request failed'))
         }
       })
 

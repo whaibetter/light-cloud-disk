@@ -55,8 +55,15 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// 解析JSON请求体
-app.use(express.json());
+// 设置字符编码
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// 设置响应头
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
 
 // 静态文件服务（用于提供上传的文件下载）
 app.use('/files', express.static(UPLOAD_DIR));
@@ -82,9 +89,11 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     // 保留原始文件名，如果重复则添加数字后缀
-    const ext = path.extname(file.originalname);
-    const basename = path.basename(file.originalname, ext);
-    let finalName = file.originalname;
+    // 修复中文文件名编码问题
+    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const ext = path.extname(originalName);
+    const basename = path.basename(originalName, ext);
+    let finalName = originalName;
     let counter = 1;
     
     // 检查文件是否已存在，如果存在则添加数字后缀
@@ -219,7 +228,8 @@ app.get('/api/download/:filename', authenticateAPIKey, (req, res) => {
 
     // 设置下载头
     if (fileInfo) {
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileInfo.originalName)}"`);
+      const encodedName = encodeURIComponent(fileInfo.originalName);
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedName}`);
       res.setHeader('Content-Type', fileInfo.mimetype || 'application/octet-stream');
     }
 

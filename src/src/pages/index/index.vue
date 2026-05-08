@@ -558,16 +558,20 @@ function closeUploadPanel() {
 async function chooseImage() {
   closeUploadPanel()
   // #ifdef H5
-  const filePaths = await chooseFile({ type: 'image', multiple: true })
-  if (filePaths && filePaths.length > 0) {
-    await uploadFiles(filePaths)
+  const fileResults = await chooseFile({ type: 'image', multiple: true })
+  if (fileResults && fileResults.length > 0) {
+    await uploadFiles(fileResults)
   }
   // #endif
   // #ifndef H5
   uni.chooseImage({
     count: 9,
     success: (res) => {
-      uploadFiles(res.tempFilePaths)
+      const fileResults = res.tempFilePaths.map(path => ({
+        path,
+        name: path.split('/').pop() || 'unknown'
+      }))
+      uploadFiles(fileResults)
     }
   })
   // #endif
@@ -575,23 +579,23 @@ async function chooseImage() {
 
 async function chooseFileAction() {
   closeUploadPanel()
-  const filePaths = await chooseFile({ multiple: true })
-  if (filePaths && filePaths.length > 0) {
-    await uploadFiles(filePaths)
+  const fileResults = await chooseFile({ multiple: true })
+  if (fileResults && fileResults.length > 0) {
+    await uploadFiles(fileResults)
   }
 }
 
-async function uploadFiles(filePaths: string[]) {
+async function uploadFiles(fileResults: Array<{path: string, name: string, file?: File}>) {
   uploading.value = true
   uploadProgress.value = 0
 
   try {
-    for (let i = 0; i < filePaths.length; i++) {
-      await fileStore.uploadFile(filePaths[i], (progress) => {
-        uploadProgress.value = Math.round(((i + progress / 100) / filePaths.length) * 100)
-      })
+    for (let i = 0; i < fileResults.length; i++) {
+      await fileStore.uploadFile(fileResults[i].path, (progress) => {
+        uploadProgress.value = Math.round(((i + progress / 100) / fileResults.length) * 100)
+      }, fileResults[i].file)
     }
-    uni.showToast({ title: `成功上传 ${filePaths.length} 个文件`, icon: 'success' })
+    uni.showToast({ title: `成功上传 ${fileResults.length} 个文件`, icon: 'success' })
     await loadFiles()
   } catch (error: any) {
     uni.showToast({ title: error.message || '上传失败', icon: 'none' })

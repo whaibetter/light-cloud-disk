@@ -1,20 +1,6 @@
 // ============================================
-// 轻量云盘 - 全新设计系统
-// 设计理念：极简、优雅、高效
+// 轻量云盘 - 全局样式变量
 // ============================================
-
-// 品牌色 - 深邃靛蓝
-$brand-primary: #4F46E5;
-$brand-secondary: #7C3AED;
-$brand-accent: #06B6D4;
-$brand-gradient: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #06B6D4 100%);
-$brand-gradient-subtle: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
-
-// 功能色
-$color-success: #10B981;
-$color-warning: #F59E0B;
-$color-danger: #EF4444;
-$color-info: #3B82F6;
 
 // 中性色
 $gray-50: #F9FAFB;
@@ -28,24 +14,37 @@ $gray-700: #374151;
 $gray-800: #1F2937;
 $gray-900: #111827;
 
+// 品牌色
+$brand-primary: var(--brand-primary, #4F46E5);
+$brand-secondary: #7C3AED;
+$brand-accent: #06B6D4;
+$brand-gradient: var(--brand-gradient, linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #06B6D4 100%));
+$brand-gradient-subtle: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+
 // 语义色
-$text-primary: $gray-900;
-$text-secondary: $gray-500;
-$text-tertiary: $gray-400;
-$text-inverse: #FFFFFF;
+$text-primary: var(--text-primary, #111827);
+$text-secondary: var(--text-secondary, #6B7280);
+$text-tertiary: var(--text-tertiary, #9CA3AF);
+$text-inverse: var(--text-inverse, #FFFFFF);
 
-$bg-page: #F8FAFC;
-$bg-card: #FFFFFF;
-$bg-elevated: #FFFFFF;
-$bg-sunken: $gray-100;
+$bg-page: var(--bg-page, #F8FAFC);
+$bg-card: var(--bg-card, #FFFFFF);
+$bg-elevated: var(--bg-elevated, #FFFFFF);
+$bg-sunken: var(--bg-sunken, #F3F4F6);
+$bg-input: var(--bg-input, #F3F4F6);
+$bg-hover: var(--bg-hover, #F3F4F6);
 
-$border-default: $gray-200;
-$border-subtle: $gray-100;
+$border-default: var(--border-default, #E5E7EB);
+$border-subtle: var(--border-subtle, #F3F4F6);
 
-// 字体系统
+// 功能色
+$color-success: #10B981;
+$color-warning: #F59E0B;
+$color-danger: #EF4444;
+$color-info: #3B82F6;
+
+// 字体
 $font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
-$font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-
 $font-size-xs: 11px;
 $font-size-sm: 13px;
 $font-size-base: 15px;
@@ -53,18 +52,8 @@ $font-size-lg: 17px;
 $font-size-xl: 20px;
 $font-size-2xl: 24px;
 $font-size-3xl: 30px;
-$font-size-4xl: 36px;
 
-$font-weight-normal: 400;
-$font-weight-medium: 500;
-$font-weight-semibold: 600;
-$font-weight-bold: 700;
-
-$line-height-tight: 1.25;
-$line-height-normal: 1.5;
-$line-height-relaxed: 1.75;
-
-// 间距系统 (4px 基准)
+// 间距
 $space-1: 4px;
 $space-2: 8px;
 $space-3: 12px;
@@ -76,7 +65,7 @@ $space-10: 40px;
 $space-12: 48px;
 $space-16: 64px;
 
-// 圆角系统
+// 圆角
 $radius-sm: 6px;
 $radius-md: 8px;
 $radius-lg: 12px;
@@ -84,43 +73,35 @@ $radius-xl: 16px;
 $radius-2xl: 20px;
 $radius-full: 9999px;
 
-// 阴影系统
+// 阴影
 $shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
 $shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
 $shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 $shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-$shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-$shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 $shadow-colored: 0 10px 15px -3px rgba(79, 70, 229, 0.3), 0 4px 6px -2px rgba(79, 70, 229, 0.15);
 
-// 动画系统
+// 动画
 $duration-fast: 150ms;
 $duration-normal: 200ms;
 $duration-slow: 300ms;
-$duration-slower: 500ms;
-
 $ease-default: cubic-bezier(0.4, 0, 0.2, 1);
 $ease-in: cubic-bezier(0.4, 0, 1, 1);
 $ease-out: cubic-bezier(0, 0, 0.2, 1);
 $ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-$ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
 $transition-fast: all $duration-fast $ease-default;
 $transition-base: all $duration-normal $ease-default;
 $transition-slow: all $duration-slow $ease-default;
 
-// 布局系统
-$content-max-width: 1200px;
-$sidebar-width: 280px;
-$header-height: 64px;
-
-// 断点系统
+// 响应式断点
 $bp-sm: 640px;
 $bp-md: 768px;
 $bp-lg: 1024px;
 $bp-xl: 1280px;
-$bp-2xl: 1536px;
+
+// 内容最大宽度
+$content-max-width: 1200px;
+$sidebar-width: 280px;
+$header-height: 64px;
 
 // Z-index 系统
 $z-dropdown: 1000;
@@ -135,5 +116,9 @@ $z-toast: 1080;
 // 安全区域
 $safe-top: env(safe-area-inset-top, 0px);
 $safe-bottom: env(safe-area-inset-bottom, 0px);
-$safe-left: env(safe-area-inset-left, 0px);
-$safe-right: env(safe-area-inset-right, 0px);
+
+// 字重
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;

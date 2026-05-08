@@ -62,13 +62,14 @@ export const useFileStore = defineStore('file', () => {
 
   async function uploadFile(
     filePath: string, 
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    file?: File
   ): Promise<void> {
     const response = await fileApi.uploadFile(filePath, (progress: UploadProgress) => {
       if (onProgress) {
         onProgress(progress.percent)
       }
-    })
+    }, file)
     
     if (response.files && response.files.length > 0) {
       files.value.unshift(response.files[0])

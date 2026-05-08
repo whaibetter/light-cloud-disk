@@ -18,21 +18,6 @@ const DEFAULTS = {
   VIEW_MODE: appConfig.ui.defaultViewMode as 'list' | 'grid'
 }
 
-function getDefaultServerUrl(): string {
-  // #ifdef H5
-  if (typeof window !== 'undefined') {
-    const protocol = window.location.protocol
-    const host = window.location.host
-    // 如果在 /cloud/ 路径下，返回当前域名 + /cloud
-    if (window.location.pathname.startsWith('/cloud')) {
-      return `${protocol}//${host}/cloud`
-    }
-    return `${protocol}//${host}`
-  }
-  // #endif
-  return DEFAULTS.SERVER_URL
-}
-
 function normalizeUrl(url: string): string {
   if (!url || !url.trim()) return DEFAULTS.SERVER_URL
   let normalized = url.trim().replace(/\/+$/, '')
@@ -43,7 +28,7 @@ function normalizeUrl(url: string): string {
 }
 
 export const useConfigStore = defineStore('config', () => {
-  const serverUrl = ref(normalizeUrl(uni.getStorageSync(STORAGE_KEYS.SERVER_URL) || getDefaultServerUrl()))
+  const serverUrl = ref(normalizeUrl(uni.getStorageSync(STORAGE_KEYS.SERVER_URL) || DEFAULTS.SERVER_URL))
   const apiKey = ref(uni.getStorageSync(STORAGE_KEYS.API_KEY) || DEFAULTS.API_KEY)
   const theme = ref(uni.getStorageSync(STORAGE_KEYS.THEME) || DEFAULTS.THEME)
   const language = ref(uni.getStorageSync(STORAGE_KEYS.LANGUAGE) || DEFAULTS.LANGUAGE)

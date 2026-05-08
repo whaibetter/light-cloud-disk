@@ -38,7 +38,13 @@ interface ChooseFileOptions {
   count?: number
 }
 
-export function chooseFile(options: ChooseFileOptions = {}): Promise<string[]> {
+interface ChooseFileResult {
+  path: string
+  name: string
+  file?: File
+}
+
+export function chooseFile(options: ChooseFileOptions = {}): Promise<ChooseFileResult[]> {
   const { multiple = false, type = 'all', count = 9 } = options
 
   // #ifdef H5
@@ -58,11 +64,13 @@ export function chooseFile(options: ChooseFileOptions = {}): Promise<string[]> {
     }
 
     input.onchange = (e: any) => {
-      const files = Array.from(e.target.files)
-      const filePaths = files.map(file => {
-        return URL.createObjectURL(file)
-      })
-      resolve(filePaths)
+      const files = Array.from(e.target.files) as File[]
+      const results = files.map(file => ({
+        path: URL.createObjectURL(file),
+        name: file.name,
+        file: file
+      }))
+      resolve(results)
     }
 
     input.click()
@@ -78,7 +86,11 @@ export function chooseFile(options: ChooseFileOptions = {}): Promise<string[]> {
         count: multiple ? count : 1,
         sourceType,
         success: (res) => {
-          resolve(res.tempFilePaths)
+          const results = res.tempFilePaths.map(path => ({
+            path,
+            name: path.split('/').pop() || 'unknown'
+          }))
+          resolve(results)
         },
         fail: () => {
           resolve([])
@@ -88,7 +100,10 @@ export function chooseFile(options: ChooseFileOptions = {}): Promise<string[]> {
       uni.chooseVideo({
         sourceType,
         success: (res) => {
-          resolve([res.tempFilePath])
+          resolve([{
+            path: res.tempFilePath,
+            name: res.tempFilePath.split('/').pop() || 'unknown'
+          }])
         },
         fail: () => {
           resolve([])
@@ -98,7 +113,11 @@ export function chooseFile(options: ChooseFileOptions = {}): Promise<string[]> {
       uni.chooseMessageFile({
         count: multiple ? count : 1,
         success: (res) => {
-          resolve(res.tempFilePaths)
+          const results = res.tempFilePaths.map(path => ({
+            path,
+            name: path.split('/').pop() || 'unknown'
+          }))
+          resolve(results)
         },
         fail: () => {
           resolve([])
@@ -114,7 +133,11 @@ export function chooseFile(options: ChooseFileOptions = {}): Promise<string[]> {
       uni.chooseImage({
         count: multiple ? count : 1,
         success: (res) => {
-          resolve(res.tempFilePaths)
+          const results = res.tempFilePaths.map(path => ({
+            path,
+            name: path.split('/').pop() || 'unknown'
+          }))
+          resolve(results)
         },
         fail: () => {
           resolve([])
@@ -123,7 +146,10 @@ export function chooseFile(options: ChooseFileOptions = {}): Promise<string[]> {
     } else if (type === 'video') {
       uni.chooseVideo({
         success: (res) => {
-          resolve([res.tempFilePath])
+          resolve([{
+            path: res.tempFilePath,
+            name: res.tempFilePath.split('/').pop() || 'unknown'
+          }])
         },
         fail: () => {
           resolve([])
