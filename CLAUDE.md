@@ -70,10 +70,10 @@ API 端点：
 - `GET /api/download/:filename` - 下载文件
 - `DELETE /api/files/:filename` - 删除文件
 
-### 前端架构 (src/src/)
+### 前端架构 (src/)
 
 ```
-src/src/
+src/
 ├── api/              # API 层
 │   ├── client.ts     # 统一请求客户端（自动注入 API Key）
 │   ├── types.ts      # 类型定义

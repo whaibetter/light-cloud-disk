@@ -23,15 +23,14 @@ light-cloud-disk/
 │       └── files.json        # 文件列表
 │
 └── src/                      # Uni-app 前端（Vue 3）
-    ├── src/
-    │   ├── pages/            # 页面组件
-    │   ├── static/           # 静态资源
-    │   ├── App.vue           # 根组件
-    │   ├── main.ts           # 入口文件
-    │   ├── manifest.json     # 应用配置
-    │   └── pages.json        # 页面路由配置
-    ├── package.json          # 依赖配置
-    └── vite.config.ts        # 构建配置
+    ├── pages/            # 页面组件
+    ├── static/           # 静态资源
+    ├── App.vue           # 根组件
+    ├── main.ts           # 入口文件
+    ├── manifest.json     # 应用配置
+    ├── pages.json        # 页面路由配置
+    ├── package.json      # 依赖配置
+    └── vite.config.ts    # 构建配置
 ```
 
 ## 🚀 快速开始

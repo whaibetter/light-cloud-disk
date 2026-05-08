@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { fileApi } from '@/api/modules/file'
 import { getFileExtension, getFileNameWithoutExtension } from '@/utils/format'
-import type { FileInfo, UploadProgress } from '@/api/types'
+import type { FileInfo } from '@/api/types'
 
 export const useFileStore = defineStore('file', () => {
   const files = ref<FileInfo[]>([])
@@ -65,9 +65,9 @@ export const useFileStore = defineStore('file', () => {
     onProgress?: (progress: number) => void,
     file?: File
   ): Promise<void> {
-    const response = await fileApi.uploadFile(filePath, (progress: UploadProgress) => {
+    const response = await fileApi.uploadFile(filePath, (progress: number) => {
       if (onProgress) {
-        onProgress(progress.percent)
+        onProgress(progress)
       }
     }, file)
     

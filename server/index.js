@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
 const md5 = require('md5');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -178,7 +179,8 @@ app.post('/api/upload', authenticateAPIKey, upload.array('files', 10), (req, res
         size: file.size,
         mimetype: file.mimetype,
         uploadTime: new Date().toISOString(),
-        md5: calculateMD5(file.path)
+        md5: calculateMD5(file.path),
+        shares: []
       };
 
       filesDB.push(fileInfo);
@@ -317,6 +319,303 @@ app.get('/api/files/:filename', authenticateAPIKey, (req, res) => {
       success: false,
       error: 'Failed to retrieve file information'
     });
+  }
+});
+
+// 生成随机 token
+function generateToken() {
+  return crypto.randomBytes(16).toString('hex').slice(0, 16);
+}
+
+// 创建分享链接
+app.post('/api/share/:filename', authenticateAPIKey, (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const { password, expireHours } = req.body || {};
+
+    const filesDB = readFilesDB();
+    const fileInfo = filesDB.find(f => f.storedName === filename);
+
+    if (!fileInfo) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+
+    // 确保 shares 数组存在
+    if (!fileInfo.shares) {
+      fileInfo.shares = [];
+    }
+
+    const token = generateToken();
+    const share = {
+      token,
+      password: password ? md5(password) : '',
+      expireAt: expireHours ? new Date(Date.now() + expireHours * 3600000).toISOString() : null,
+      createdAt: new Date().toISOString()
+    };
+
+    fileInfo.shares.push(share);
+    writeFilesDB(filesDB);
+
+    // 构建分享链接
+    const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+    const shareUrl = `${baseUrl}/cloud/#/pages/share/index?token=${token}`;
+
+    res.json({
+      success: true,
+      shareUrl,
+      token,
+      hasPassword: !!password,
+      expireAt: share.expireAt
+    });
+  } catch (error) {
+    console.error('Share error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// 获取文件的分享列表
+app.get('/api/shares/:filename', authenticateAPIKey, (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filesDB = readFilesDB();
+    const fileInfo = filesDB.find(f => f.storedName === filename);
+
+    if (!fileInfo) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+
+    res.json({
+      success: true,
+      shares: (fileInfo.shares || []).map(s => ({
+        token: s.token,
+        hasPassword: !!s.password,
+        expireAt: s.expireAt,
+        createdAt: s.createdAt,
+        expired: s.expireAt ? new Date(s.expireAt) < new Date() : false
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// 获取所有分享链接（全局）
+app.get('/api/shares', authenticateAPIKey, (req, res) => {
+  try {
+    const filesDB = readFilesDB();
+    const allShares = [];
+
+    for (const file of filesDB) {
+      if (file.shares && file.shares.length > 0) {
+        for (const share of file.shares) {
+          allShares.push({
+            token: share.token,
+            fileName: file.originalName,
+            storedName: file.storedName,
+            fileSize: file.size,
+            mimetype: file.mimetype,
+            hasPassword: !!share.password,
+            expireAt: share.expireAt,
+            createdAt: share.createdAt,
+            expired: share.expireAt ? new Date(share.expireAt) < new Date() : false
+          });
+        }
+      }
+    }
+
+    // 按创建时间降序排列
+    allShares.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    res.json({ success: true, shares: allShares });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// 删除分享链接
+app.delete('/api/share/:token', authenticateAPIKey, (req, res) => {
+  try {
+    const token = req.params.token;
+    const filesDB = readFilesDB();
+    let found = false;
+
+    for (const fileInfo of filesDB) {
+      if (fileInfo.shares) {
+        const index = fileInfo.shares.findIndex(s => s.token === token);
+        if (index > -1) {
+          fileInfo.shares.splice(index, 1);
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Share not found' });
+    }
+
+    writeFilesDB(filesDB);
+    res.json({ success: true, message: 'Share deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// 公开分享下载 - 获取分享信息
+app.get('/api/s/:token', (req, res) => {
+  try {
+    const token = req.params.token;
+    const filesDB = readFilesDB();
+    let shareInfo = null;
+    let fileInfo = null;
+
+    for (const file of filesDB) {
+      if (file.shares) {
+        const share = file.shares.find(s => s.token === token);
+        if (share) {
+          shareInfo = share;
+          fileInfo = file;
+          break;
+        }
+      }
+    }
+
+    if (!shareInfo || !fileInfo) {
+      return res.status(404).json({ success: false, error: 'Share link not found' });
+    }
+
+    // 检查是否过期
+    if (shareInfo.expireAt && new Date(shareInfo.expireAt) < new Date()) {
+      return res.status(410).json({ success: false, error: 'Share link has expired' });
+    }
+
+    // 如果需要密码，只返回基本信息
+    if (shareInfo.password) {
+      return res.json({
+        success: true,
+        needPassword: true,
+        fileName: fileInfo.originalName,
+        fileSize: fileInfo.size,
+        mimetype: fileInfo.mimetype
+      });
+    }
+
+    // 无密码，直接返回文件信息供下载
+    res.json({
+      success: true,
+      needPassword: false,
+      fileName: fileInfo.originalName,
+      fileSize: fileInfo.size,
+      mimetype: fileInfo.mimetype,
+      downloadReady: true
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// 公开分享 - 验证密码并下载
+app.post('/api/s/:token/verify', (req, res) => {
+  try {
+    const token = req.params.token;
+    const { password } = req.body || {};
+    const filesDB = readFilesDB();
+    let shareInfo = null;
+    let fileInfo = null;
+
+    for (const file of filesDB) {
+      if (file.shares) {
+        const share = file.shares.find(s => s.token === token);
+        if (share) {
+          shareInfo = share;
+          fileInfo = file;
+          break;
+        }
+      }
+    }
+
+    if (!shareInfo || !fileInfo) {
+      return res.status(404).json({ success: false, error: 'Share link not found' });
+    }
+
+    // 检查是否过期
+    if (shareInfo.expireAt && new Date(shareInfo.expireAt) < new Date()) {
+      return res.status(410).json({ success: false, error: 'Share link has expired' });
+    }
+
+    // 验证密码
+    if (shareInfo.password) {
+      if (!password || md5(password) !== shareInfo.password) {
+        return res.status(401).json({ success: false, error: 'Invalid password' });
+      }
+    }
+
+    // 密码正确，返回文件信息供下载
+    res.json({
+      success: true,
+      fileName: fileInfo.originalName,
+      fileSize: fileInfo.size,
+      mimetype: fileInfo.mimetype,
+      downloadReady: true
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// 公开分享 - 下载文件
+app.get('/api/s/:token/download', (req, res) => {
+  try {
+    const token = req.params.token;
+    const password = req.query.password;
+    const filesDB = readFilesDB();
+    let shareInfo = null;
+    let fileInfo = null;
+
+    for (const file of filesDB) {
+      if (file.shares) {
+        const share = file.shares.find(s => s.token === token);
+        if (share) {
+          shareInfo = share;
+          fileInfo = file;
+          break;
+        }
+      }
+    }
+
+    if (!shareInfo || !fileInfo) {
+      return res.status(404).json({ success: false, error: 'Share link not found' });
+    }
+
+    // 检查是否过期
+    if (shareInfo.expireAt && new Date(shareInfo.expireAt) < new Date()) {
+      return res.status(410).json({ success: false, error: 'Share link has expired' });
+    }
+
+    // 验证密码
+    if (shareInfo.password) {
+      if (!password || md5(password) !== shareInfo.password) {
+        return res.status(401).json({ success: false, error: 'Invalid password' });
+      }
+    }
+
+    // 检查文件是否存在
+    const filePath = path.join(UPLOAD_DIR, fileInfo.storedName);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, error: 'File not found on disk' });
+    }
+
+    // 设置下载头
+    const encodedName = encodeURIComponent(fileInfo.originalName);
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedName}`);
+    res.setHeader('Content-Type', fileInfo.mimetype || 'application/octet-stream');
+
+    // 流式传输
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('Share download error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

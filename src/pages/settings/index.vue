@@ -154,7 +154,7 @@
                   <text class="card-desc">查看存储使用情况</text>
                 </view>
               </view>
-              
+
               <view class="card-body">
                 <view class="storage-stats">
                   <view class="stat-item">
@@ -164,6 +164,62 @@
                   <view class="stat-item">
                     <text class="stat-value">{{ formatSize(totalSize) }}</text>
                     <text class="stat-label">已用空间</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <!-- 分享链接管理 -->
+            <view v-if="configStore.isConfigValid()" class="settings-card share-card">
+              <view class="card-header">
+                <view class="card-icon share">
+                  <text>🔗</text>
+                </view>
+                <view class="card-title-group">
+                  <text class="card-title">分享链接管理</text>
+                  <text class="card-desc">管理所有文件的分享链接</text>
+                </view>
+                <view class="card-header-action" @click="loadAllShares">
+                  <text>{{ loadingShares ? '⏳' : '🔄' }}</text>
+                </view>
+              </view>
+
+              <view class="card-body">
+                <view v-if="allShares.length === 0 && !loadingShares" class="shares-empty">
+                  <text class="shares-empty-icon">📭</text>
+                  <text class="shares-empty-text">暂无分享链接</text>
+                </view>
+
+                <view v-else class="shares-list">
+                  <view
+                    v-for="share in allShares"
+                    :key="share.token"
+                    class="share-row"
+                    :class="{ expired: share.expired }"
+                  >
+                    <view class="share-row-info">
+                      <text class="share-row-file">{{ share.fileName }}</text>
+                      <view class="share-row-tags">
+                        <text class="share-tag" :class="share.hasPassword ? 'tag-locked' : 'tag-unlocked'">
+                          {{ share.hasPassword ? '🔒' : '🔓' }}
+                        </text>
+                        <text class="share-tag" :class="share.expired ? 'tag-expired' : (share.expireAt ? 'tag-limited' : 'tag-permanent')">
+                          {{ share.expired ? '已过期' : (share.expireAt ? '限时' : '永久') }}
+                        </text>
+                        <text v-if="share.expireAt" class="share-tag tag-time">
+                          {{ formatExpireDate(share.expireAt) }}
+                        </text>
+                        <text class="share-row-token">{{ share.token }}</text>
+                      </view>
+                    </view>
+                    <view class="share-row-actions">
+                      <view class="share-action-btn copy" @click="copyShareLinkFromSettings(share.token)">
+                        <text>📋</text>
+                      </view>
+                      <view class="share-action-btn delete" @click="deleteShareFromSettings(share.token)">
+                        <text>🗑️</text>
+                      </view>
+                    </view>
                   </view>
                 </view>
               </view>
@@ -296,6 +352,59 @@
         </view>
       </view>
       
+      <!-- 分享链接管理 -->
+      <view v-if="configStore.isConfigValid()" class="mobile-section">
+        <view class="section-header">
+          <view class="section-icon share">
+            <text>🔗</text>
+          </view>
+          <text class="section-title">分享链接管理</text>
+          <view class="section-header-action" @click="loadAllShares">
+            <text>{{ loadingShares ? '⏳' : '🔄' }}</text>
+          </view>
+        </view>
+
+        <view class="section-body">
+          <view v-if="allShares.length === 0 && !loadingShares" class="shares-empty">
+            <text class="shares-empty-icon">📭</text>
+            <text class="shares-empty-text">暂无分享链接</text>
+          </view>
+
+          <view v-else class="shares-list">
+            <view
+              v-for="share in allShares"
+              :key="share.token"
+              class="share-row"
+              :class="{ expired: share.expired }"
+            >
+              <view class="share-row-info">
+                <text class="share-row-file">{{ share.fileName }}</text>
+                <view class="share-row-tags">
+                  <text class="share-tag" :class="share.hasPassword ? 'tag-locked' : 'tag-unlocked'">
+                    {{ share.hasPassword ? '🔒' : '🔓' }}
+                  </text>
+                  <text class="share-tag" :class="share.expired ? 'tag-expired' : (share.expireAt ? 'tag-limited' : 'tag-permanent')">
+                    {{ share.expired ? '已过期' : (share.expireAt ? '限时' : '永久') }}
+                  </text>
+                  <text v-if="share.expireAt" class="share-tag tag-time">
+                    {{ formatExpireDate(share.expireAt) }}
+                  </text>
+                  <text class="share-row-token">{{ share.token }}</text>
+                </view>
+              </view>
+              <view class="share-row-actions">
+                <view class="share-action-btn copy" @click="copyShareLinkFromSettings(share.token)">
+                  <text>📋</text>
+                </view>
+                <view class="share-action-btn delete" @click="deleteShareFromSettings(share.token)">
+                  <text>🗑️</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
       <!-- 操作按钮 -->
       <view class="mobile-actions">
         <button class="save-btn" @click="saveConfig">
@@ -336,6 +445,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useConfigStore, useFileStore } from '@/stores'
 import { apiClient } from '@/api/client'
+import { fileApi } from '@/api/modules/file'
 import { formatFileSize } from '@/utils'
 
 const configStore = useConfigStore()
@@ -347,6 +457,8 @@ const viewMode = ref<'list' | 'grid'>('list')
 const showApiKey = ref(false)
 const testing = ref(false)
 const testResult = ref<{ status: 'success' | 'error', message: string } | null>(null)
+const allShares = ref<any[]>([])
+const loadingShares = ref(false)
 
 const totalSize = computed(() => {
   return fileStore.files.reduce((sum, file) => sum + (file.size || 0), 0)
@@ -364,6 +476,9 @@ onMounted(() => {
   // 首次访问时显示配置提示
   if (!configStore.isConfigValid()) {
     uni.showToast({ title: '请先配置服务器地址和 API Key', icon: 'none', duration: 3000 })
+  } else {
+    // 配置有效时自动加载分享列表
+    loadAllShares()
   }
 })
 
@@ -441,6 +556,80 @@ function resetConfig() {
       }
     }
   })
+}
+
+async function loadAllShares() {
+  if (loadingShares.value) return
+  loadingShares.value = true
+  try {
+    const res = await fileApi.getAllShares()
+    allShares.value = res.shares || []
+  } catch (err: any) {
+    uni.showToast({ title: err.message || '加载失败', icon: 'none' })
+  } finally {
+    loadingShares.value = false
+  }
+}
+
+function copyShareLinkFromSettings(token: string) {
+  const url = `${configStore.serverUrl}/cloud/#/pages/share/index?token=${token}`
+  // #ifdef H5
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      uni.showToast({ title: '链接已复制', icon: 'success' })
+    }).catch(() => {
+      fallbackCopy(url)
+    })
+  } else {
+    fallbackCopy(url)
+  }
+  // #endif
+  // #ifndef H5
+  uni.setClipboardData({ data: url, success: () => {
+    uni.showToast({ title: '链接已复制', icon: 'success' })
+  }})
+  // #endif
+}
+
+function fallbackCopy(text: string) {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  try {
+    document.execCommand('copy')
+    uni.showToast({ title: '链接已复制', icon: 'success' })
+  } catch {
+    uni.showToast({ title: '复制失败，请手动复制', icon: 'none' })
+  }
+  document.body.removeChild(textarea)
+}
+
+function deleteShareFromSettings(token: string) {
+  uni.showModal({
+    title: '确认删除',
+    content: '删除后该分享链接将立即失效，确定要删除吗？',
+    confirmColor: '#EF4444',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await fileApi.deleteShare(token)
+          allShares.value = allShares.value.filter(s => s.token !== token)
+          uni.showToast({ title: '已删除', icon: 'success' })
+        } catch (err: any) {
+          uni.showToast({ title: err.message || '删除失败', icon: 'none' })
+        }
+      }
+    }
+  })
+}
+
+function formatExpireDate(expireAt: string): string {
+  const expire = new Date(expireAt)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${expire.getFullYear()}-${pad(expire.getMonth() + 1)}-${pad(expire.getDate())} ${pad(expire.getHours())}:${pad(expire.getMinutes())}`
 }
 </script>
 
@@ -531,6 +720,18 @@ function resetConfig() {
       &.storage {
         background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
       }
+
+      &.share {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      }
+    }
+
+    .section-header-action {
+      margin-left: auto;
+      padding: $space-2;
+      cursor: pointer;
+      font-size: 18px;
+      border-radius: $radius-md;
     }
     
     .section-title {
@@ -792,8 +993,25 @@ function resetConfig() {
       &.storage {
         background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
       }
+
+      &.share {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      }
     }
-    
+
+    .card-header-action {
+      margin-left: auto;
+      padding: $space-2;
+      cursor: pointer;
+      font-size: 18px;
+      border-radius: $radius-md;
+      transition: $transition-base;
+
+      &:hover {
+        background: $bg-sunken;
+      }
+    }
+
     .card-title-group {
       .card-title {
         display: block;
@@ -1063,10 +1281,143 @@ function resetConfig() {
     background: $bg-card;
     color: $text-secondary;
     border: 1px solid $border-default;
-    
+
     &:hover {
       background: $bg-sunken;
       color: $text-primary;
+    }
+  }
+}
+
+// ========== 分享链接管理样式 ==========
+.shares-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $space-6;
+
+  .shares-empty-icon {
+    font-size: 32px;
+    margin-bottom: $space-2;
+  }
+
+  .shares-empty-text {
+    font-size: $font-size-sm;
+    color: $text-tertiary;
+  }
+}
+
+.shares-list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.share-row {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  background: $bg-sunken;
+  border-radius: $radius-lg;
+  border: 1px solid transparent;
+  transition: $transition-base;
+
+  &:hover {
+    border-color: $border-default;
+  }
+
+  &.expired {
+    opacity: 0.6;
+  }
+
+  .share-row-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .share-row-file {
+    display: block;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: $space-1;
+  }
+
+  .share-row-tags {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    flex-wrap: wrap;
+  }
+
+  .share-tag {
+    font-size: $font-size-xs;
+    padding: 1px 6px;
+    border-radius: $radius-sm;
+
+    &.tag-locked {
+      background: rgba($color-warning, 0.1);
+      color: $color-warning;
+    }
+
+    &.tag-unlocked {
+      background: rgba($color-success, 0.1);
+      color: $color-success;
+    }
+
+    &.tag-expired {
+      background: rgba($color-danger, 0.1);
+      color: $color-danger;
+    }
+
+    &.tag-limited {
+      background: rgba($brand-primary, 0.1);
+      color: $brand-primary;
+    }
+
+    &.tag-permanent {
+      background: rgba($text-tertiary, 0.1);
+      color: $text-tertiary;
+    }
+
+    &.tag-time {
+      background: rgba($brand-primary, 0.06);
+      color: $text-secondary;
+      font-size: 11px;
+    }
+  }
+
+  .share-row-token {
+    font-size: $font-size-xs;
+    color: $text-tertiary;
+    font-family: monospace;
+  }
+
+  .share-row-actions {
+    display: flex;
+    gap: $space-1;
+  }
+
+  .share-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: $radius-md;
+    @include flex-center;
+    cursor: pointer;
+    transition: $transition-base;
+
+    &.copy:hover {
+      background: rgba($brand-primary, 0.1);
+    }
+
+    &.delete:hover {
+      background: rgba($color-danger, 0.1);
     }
   }
 }

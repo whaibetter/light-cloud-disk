@@ -36,6 +36,9 @@
           />
           <text v-if="searchQuery" class="search-clear" @click="clearSearch">✕</text>
         </view>
+        <view class="mobile-sort-btn" @click="showSortPanel = true">
+          <text>↕️</text>
+        </view>
       </view>
     </view>
 
@@ -68,6 +71,9 @@
             <text class="mobile-file-meta">{{ formatSize(file.size) }} · {{ formatDate(file.uploadTime) }}</text>
           </view>
           <view class="mobile-file-actions">
+            <view class="mobile-action-icon share" @click.stop="openShareModal(file)">
+              <text>🔗</text>
+            </view>
             <view class="mobile-action-icon download" @click.stop="handleDownload(file)">
               <text>↓</text>
             </view>
@@ -210,9 +216,18 @@
           <!-- 列表视图 -->
           <view v-if="viewMode === 'list' && filteredFiles.length > 0" class="list-view">
             <view class="list-header">
-              <text class="header-name">名称</text>
-              <text class="header-size">大小</text>
-              <text class="header-time">修改时间</text>
+              <view class="header-name sortable" @click="toggleSort('name')">
+                <text>名称</text>
+                <text v-if="fileStore.sortBy === 'name'" class="sort-indicator">{{ fileStore.sortOrder === 'asc' ? '↑' : '↓' }}</text>
+              </view>
+              <view class="header-size sortable" @click="toggleSort('size')">
+                <text>大小</text>
+                <text v-if="fileStore.sortBy === 'size'" class="sort-indicator">{{ fileStore.sortOrder === 'asc' ? '↑' : '↓' }}</text>
+              </view>
+              <view class="header-time sortable" @click="toggleSort('time')">
+                <text>修改时间</text>
+                <text v-if="fileStore.sortBy === 'time'" class="sort-indicator">{{ fileStore.sortOrder === 'asc' ? '↑' : '↓' }}</text>
+              </view>
               <text class="header-actions">操作</text>
             </view>
             <view
@@ -230,6 +245,9 @@
               <text class="row-size">{{ formatSize(file.size) }}</text>
               <text class="row-time">{{ formatDate(file.uploadTime) }}</text>
               <view class="row-actions">
+                <view class="action-btn share" @click.stop="openShareModal(file)">
+                  <text>🔗</text>
+                </view>
                 <view class="action-btn download" @click.stop="handleDownload(file)">
                   <text>↓</text>
                 </view>
@@ -254,6 +272,9 @@
               <text class="card-name">{{ file.originalName }}</text>
               <text class="card-meta">{{ formatSize(file.size) }}</text>
               <view class="card-actions">
+                <view class="action-btn share" @click.stop="openShareModal(file)">
+                  <text>🔗</text>
+                </view>
                 <view class="action-btn download" @click.stop="handleDownload(file)">
                   <text>↓</text>
                 </view>
@@ -370,6 +391,110 @@
         </view>
       </view>
     </view>
+
+    <!-- 分享面板 -->
+    <view v-if="showSharePanel" class="modal-overlay" @click="closeSharePanel">
+      <view class="share-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">分享文件</text>
+          <view class="modal-close" @click="closeSharePanel">
+            <text>✕</text>
+          </view>
+        </view>
+        <view class="modal-body">
+          <!-- 当前分享的文件名 -->
+          <view class="share-file-info">
+            <text class="share-file-name">{{ shareFile?.originalName }}</text>
+          </view>
+
+          <!-- 分享链接显示 -->
+          <view v-if="shareLink" class="share-link-section">
+            <text class="share-link-label">分享链接</text>
+            <view class="share-link-box">
+              <text class="share-link-url" selectable>{{ shareLink }}</text>
+              <view class="share-link-copy" @click="copyShareLink">
+                <text>{{ shareCopied ? '已复制' : '复制' }}</text>
+              </view>
+            </view>
+            <view v-if="shareHasPassword" class="share-password-display">
+              <text class="share-password-label">提取密码：</text>
+              <text class="share-password-value">{{ sharePasswordPlain }}</text>
+            </view>
+          </view>
+
+          <!-- 分享设置 -->
+          <view class="share-settings">
+            <text class="share-section-title">分享设置</text>
+
+            <!-- 密码设置 -->
+            <view class="share-field">
+              <text class="share-field-label">访问密码（可选）</text>
+              <input
+                class="share-field-input"
+                v-model="sharePassword"
+                placeholder="留空则无需密码"
+                :password="!showSharePassword"
+              />
+              <view class="share-password-toggle" @click="showSharePassword = !showSharePassword">
+                <text>{{ showSharePassword ? '🙈' : '👁️' }}</text>
+              </view>
+            </view>
+
+            <!-- 有效期设置 -->
+            <view class="share-field">
+              <text class="share-field-label">有效期</text>
+              <view class="share-expire-options">
+                <view
+                  v-for="opt in expireOptions"
+                  :key="opt.value"
+                  class="expire-option"
+                  :class="{ active: shareExpireHours === opt.value }"
+                  @click="shareExpireHours = opt.value"
+                >
+                  <text>{{ opt.label }}</text>
+                </view>
+              </view>
+            </view>
+
+            <!-- 生成按钮 -->
+            <view class="share-generate-btn" @click="generateShareLink">
+              <text>{{ shareLink ? '重新生成链接' : '生成分享链接' }}</text>
+            </view>
+          </view>
+
+          <!-- 已有分享列表 -->
+          <view v-if="existingShares.length > 0" class="share-existing">
+            <text class="share-section-title">已有分享（{{ existingShares.length }}）</text>
+            <view
+              v-for="share in existingShares"
+              :key="share.token"
+              class="share-item"
+              :class="{ expired: share.expired }"
+            >
+              <view class="share-item-info">
+                <view class="share-item-row">
+                  <text class="share-item-token">{{ share.token }}</text>
+                  <view v-if="!share.expired" class="share-item-copy" @click="copyExistingShareLink(share.token)">
+                    <text>复制</text>
+                  </view>
+                </view>
+                <view class="share-item-tags">
+                  <text class="share-tag" :class="share.hasPassword ? 'tag-locked' : 'tag-unlocked'">
+                    {{ share.hasPassword ? '🔒 有密码' : '🔓 无密码' }}
+                  </text>
+                  <text class="share-tag" :class="share.expired ? 'tag-expired' : (share.expireAt ? 'tag-limited' : 'tag-permanent')">
+                    {{ share.expired ? '⏰ 已过期' : (share.expireAt ? '⏳ 限时 · ' + formatExpireTime(share.expireAt) : '♾️ 永久') }}
+                  </text>
+                </view>
+              </view>
+              <view class="share-item-delete" @click="deleteExistingShare(share.token)">
+                <text>🗑️</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -380,7 +505,7 @@ import { useFileStore, useConfigStore } from '@/stores'
 import { fileApi } from '@/api/modules/file'
 import { chooseFile } from '@/utils/file'
 import { formatFileSize, formatDate, getFileIcon, getFileIconColor } from '@/utils'
-import type { FileInfo } from '@/api/types'
+import type { FileInfo, ShareInfo } from '@/api/types'
 
 const fileStore = useFileStore()
 const configStore = useConfigStore()
@@ -395,6 +520,26 @@ const uploadProgress = ref(0)
 const showSortPanel = ref(false)
 const selectedTypes = ref<string[]>([])
 const statusBarHeight = ref(0)
+
+// 分享相关
+const showSharePanel = ref(false)
+const shareFile = ref<FileInfo | null>(null)
+const shareLink = ref('')
+const sharePassword = ref('')
+const sharePasswordPlain = ref('')
+const shareHasPassword = ref(false)
+const shareExpireHours = ref<number | null>(null)
+const showSharePassword = ref(false)
+const shareCopied = ref(false)
+const existingShares = ref<ShareInfo[]>([])
+
+const expireOptions = [
+  { label: '永久', value: null },
+  { label: '1小时', value: 1 },
+  { label: '24小时', value: 24 },
+  { label: '7天', value: 168 },
+  { label: '30天', value: 720 },
+]
 
 const fileTypeFilters = [
   { label: '图片', value: 'image', icon: '🖼️' },
@@ -504,6 +649,14 @@ function setSort(field: 'name' | 'time' | 'size') {
   fileStore.setSort(field, fileStore.sortOrder)
 }
 
+function toggleSort(field: 'name' | 'time' | 'size') {
+  if (fileStore.sortBy === field) {
+    fileStore.setSort(field, fileStore.sortOrder === 'asc' ? 'desc' : 'asc')
+  } else {
+    fileStore.setSort(field, 'desc')
+  }
+}
+
 function setSortOrder(order: 'asc' | 'desc') {
   fileStore.setSort(fileStore.sortBy, order)
   showSortPanel.value = false
@@ -589,6 +742,167 @@ async function handleDelete(file: FileInfo) {
       }
     }
   })
+}
+
+// 分享功能
+async function openShareModal(file: FileInfo) {
+  shareFile.value = file
+  shareLink.value = ''
+  sharePassword.value = ''
+  sharePasswordPlain.value = ''
+  shareHasPassword.value = false
+  shareExpireHours.value = null
+  showSharePassword.value = false
+  shareCopied.value = false
+  showSharePanel.value = true
+
+  // 加载已有分享
+  try {
+    const res = await fileApi.getShares(file.storedName)
+    existingShares.value = res.shares || []
+  } catch {
+    existingShares.value = []
+  }
+}
+
+function closeSharePanel() {
+  showSharePanel.value = false
+  shareFile.value = null
+  shareLink.value = ''
+}
+
+async function generateShareLink() {
+  if (!shareFile.value) return
+
+  try {
+    const res = await fileApi.createShare(
+      shareFile.value.storedName,
+      sharePassword.value || undefined,
+      shareExpireHours.value || undefined
+    )
+    shareLink.value = res.shareUrl
+    shareHasPassword.value = res.hasPassword
+    sharePasswordPlain.value = sharePassword.value
+    shareCopied.value = false
+
+    // 刷新已有分享列表
+    const sharesRes = await fileApi.getShares(shareFile.value.storedName)
+    existingShares.value = sharesRes.shares || []
+
+    uni.showToast({ title: '分享链接已生成', icon: 'success' })
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '生成失败', icon: 'none' })
+  }
+}
+
+function copyShareLink() {
+  if (!shareLink.value) return
+  // #ifdef H5
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(shareLink.value).then(() => {
+      shareCopied.value = true
+      uni.showToast({ title: '已复制', icon: 'success' })
+      setTimeout(() => { shareCopied.value = false }, 2000)
+    }).catch(() => {
+      fallbackCopy(shareLink.value)
+    })
+  } else {
+    fallbackCopy(shareLink.value)
+  }
+  // #endif
+  // #ifndef H5
+  uni.setClipboardData({
+    data: shareLink.value,
+    success: () => {
+      shareCopied.value = true
+      setTimeout(() => { shareCopied.value = false }, 2000)
+    }
+  })
+  // #endif
+}
+
+// #ifdef H5
+function fallbackCopy(text: string) {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.select()
+  try {
+    document.execCommand('copy')
+    shareCopied.value = true
+    uni.showToast({ title: '已复制', icon: 'success' })
+    setTimeout(() => { shareCopied.value = false }, 2000)
+  } catch {
+    uni.showToast({ title: '复制失败，请手动复制', icon: 'none' })
+  }
+  document.body.removeChild(textarea)
+}
+// #endif
+
+async function deleteExistingShare(token: string) {
+  uni.showModal({
+    title: '确认删除',
+    content: '删除后该分享链接将立即失效，确定要删除吗？',
+    confirmColor: '#EF4444',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await fileApi.deleteShare(token)
+          existingShares.value = existingShares.value.filter(s => s.token !== token)
+          uni.showToast({ title: '已删除，链接已失效', icon: 'success' })
+        } catch (error: any) {
+          uni.showToast({ title: error.message || '删除失败', icon: 'none' })
+        }
+      }
+    }
+  })
+}
+
+function copyExistingShareLink(token: string) {
+  const url = `${configStore.serverUrl}/cloud/#/pages/share/index?token=${token}`
+  // #ifdef H5
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      uni.showToast({ title: '已复制', icon: 'success' })
+    }).catch(() => {
+      fallbackCopy(url)
+    })
+  } else {
+    fallbackCopy(url)
+  }
+  // #endif
+  // #ifndef H5
+  uni.setClipboardData({ data: url })
+  // #endif
+}
+
+function formatExpireTime(expireAt: string): string {
+  const now = new Date()
+  const expire = new Date(expireAt)
+  const diff = expire.getTime() - now.getTime()
+
+  // 格式化为 YYYY-MM-DD HH:mm
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const dateStr = `${expire.getFullYear()}-${pad(expire.getMonth() + 1)}-${pad(expire.getDate())} ${pad(expire.getHours())}:${pad(expire.getMinutes())}`
+
+  if (diff <= 0) return `已于 ${dateStr} 过期`
+
+  const hours = Math.floor(diff / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+
+  let remainStr = ''
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24)
+    remainStr = `（剩余 ${days} 天）`
+  } else if (hours > 0) {
+    remainStr = `（剩余 ${hours} 小时 ${minutes} 分钟）`
+  } else {
+    remainStr = `（剩余 ${minutes} 分钟）`
+  }
+
+  return `${dateStr} 过期 ${remainStr}`
 }
 
 function handleUpload() {
@@ -732,8 +1046,12 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
 
   .mobile-search {
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: $space-2;
 
     .mobile-search-box {
+      flex: 1;
       display: flex;
       align-items: center;
       background: rgba(255, 255, 255, 0.95);
@@ -761,6 +1079,23 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
         padding: $space-1;
         font-size: $font-size-sm;
         color: $text-secondary;
+      }
+    }
+
+    .mobile-sort-btn {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      @include flex-center;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: $radius-full;
+      box-shadow: $shadow-md;
+      font-size: 18px;
+      cursor: pointer;
+
+      &:active {
+        transform: scale(0.95);
+        opacity: 0.8;
       }
     }
   }
@@ -836,6 +1171,11 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       @include flex-center;
       font-size: 14px;
       font-weight: $font-weight-bold;
+
+      &.share {
+        background: rgba($color-success, 0.1);
+        color: $color-success;
+      }
 
       &.download {
         background: rgba($color-info, 0.1);
@@ -1337,6 +1677,25 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       .header-size { width: 100px; text-align: right; }
       .header-time { width: 150px; text-align: right; }
       .header-actions { width: 100px; text-align: right; }
+
+      .sortable {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s;
+
+        &:hover {
+          color: $brand-primary;
+        }
+
+        .sort-indicator {
+          font-size: 12px;
+          color: $brand-primary;
+        }
+      }
     }
   }
 
@@ -1557,7 +1916,8 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
 
 .sort-modal,
 .upload-modal,
-.progress-modal {
+.progress-modal,
+.share-modal {
   background: $bg-card;
   border-radius: $radius-2xl;
   width: 90%;
@@ -1763,5 +2123,289 @@ async function uploadFiles(fileResults: Array<{path: string, name: string, file?
       transition: width 0.3s ease;
     }
   }
+}
+
+.share-modal {
+  .modal-body {
+    padding: $space-4 $space-6 $space-6;
+  }
+
+  .share-file-info {
+    margin-bottom: $space-4;
+    padding-bottom: $space-3;
+    border-bottom: 1px solid $border-subtle;
+
+    .share-file-name {
+      font-size: $font-size-sm;
+      color: $text-secondary;
+      word-break: break-all;
+    }
+  }
+
+  .share-link-section {
+    margin-bottom: $space-4;
+    padding: $space-3;
+    background: $bg-sunken;
+    border-radius: $radius-lg;
+
+    .share-link-label {
+      display: block;
+      font-size: $font-size-xs;
+      color: $text-secondary;
+      margin-bottom: $space-2;
+    }
+
+    .share-link-box {
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+      background: $bg-card;
+      border: 1px solid $border-subtle;
+      border-radius: $radius-md;
+      padding: $space-2 $space-3;
+
+      .share-link-url {
+        flex: 1;
+        font-size: $font-size-xs;
+        color: $text-primary;
+        word-break: break-all;
+        min-width: 0;
+      }
+
+      .share-link-copy {
+        flex-shrink: 0;
+        padding: $space-1 $space-3;
+        background: $brand-primary;
+        color: white;
+        border-radius: $radius-md;
+        font-size: $font-size-xs;
+        cursor: pointer;
+
+        &:active {
+          opacity: 0.8;
+        }
+      }
+    }
+
+    .share-password-display {
+      margin-top: $space-2;
+      display: flex;
+      align-items: center;
+      gap: $space-1;
+
+      .share-password-label {
+        font-size: $font-size-xs;
+        color: $text-secondary;
+      }
+
+      .share-password-value {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-bold;
+        color: $brand-primary;
+        letter-spacing: 2px;
+      }
+    }
+  }
+
+  .share-settings {
+    margin-bottom: $space-4;
+
+    .share-section-title {
+      display: block;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      margin-bottom: $space-3;
+    }
+
+    .share-field {
+      margin-bottom: $space-3;
+
+      .share-field-label {
+        display: block;
+        font-size: $font-size-xs;
+        color: $text-secondary;
+        margin-bottom: $space-1;
+      }
+
+      .share-field-input {
+        width: 100%;
+        height: 40px;
+        padding: 0 $space-3;
+        background: $bg-sunken;
+        border: 1px solid $border-subtle;
+        border-radius: $radius-md;
+        font-size: $font-size-sm;
+        color: $text-primary;
+        box-sizing: border-box;
+      }
+    }
+
+    .share-expire-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $space-2;
+
+      .expire-option {
+        padding: $space-1 $space-3;
+        background: $bg-sunken;
+        border: 1px solid $border-subtle;
+        border-radius: $radius-full;
+        font-size: $font-size-xs;
+        color: $text-secondary;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &.active {
+          background: rgba($brand-primary, 0.1);
+          border-color: $brand-primary;
+          color: $brand-primary;
+        }
+      }
+    }
+
+    .share-generate-btn {
+      margin-top: $space-4;
+      width: 100%;
+      height: 44px;
+      @include flex-center;
+      background: $brand-gradient;
+      color: white;
+      border-radius: $radius-lg;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      cursor: pointer;
+
+      &:active {
+        opacity: 0.9;
+        transform: scale(0.98);
+      }
+    }
+  }
+
+  .share-existing {
+    border-top: 1px solid $border-subtle;
+    padding-top: $space-4;
+
+    .share-section-title {
+      display: block;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      margin-bottom: $space-3;
+    }
+
+    .share-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: $space-3;
+      background: $bg-sunken;
+      border-radius: $radius-md;
+      margin-bottom: $space-2;
+      border: 1px solid $border-subtle;
+
+      &.expired {
+        opacity: 0.6;
+      }
+
+      .share-item-info {
+        flex: 1;
+        min-width: 0;
+
+        .share-item-row {
+          display: flex;
+          align-items: center;
+          gap: $space-2;
+          margin-bottom: $space-2;
+
+          .share-item-token {
+            font-size: $font-size-xs;
+            font-family: monospace;
+            color: $text-primary;
+            word-break: break-all;
+          }
+
+          .share-item-copy {
+            flex-shrink: 0;
+            padding: 2px $space-2;
+            background: rgba($brand-primary, 0.1);
+            color: $brand-primary;
+            border-radius: $radius-sm;
+            font-size: $font-size-xs;
+            cursor: pointer;
+
+            &:active {
+              opacity: 0.7;
+            }
+          }
+        }
+
+        .share-item-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: $space-1;
+
+          .share-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px $space-2;
+            border-radius: $radius-full;
+            font-size: 11px;
+            gap: 2px;
+
+            &.tag-locked {
+              background: rgba($color-warning, 0.1);
+              color: $color-warning;
+            }
+
+            &.tag-unlocked {
+              background: rgba($color-success, 0.1);
+              color: $color-success;
+            }
+
+            &.tag-permanent {
+              background: rgba($color-info, 0.1);
+              color: $color-info;
+            }
+
+            &.tag-limited {
+              background: rgba($brand-primary, 0.1);
+              color: $brand-primary;
+            }
+
+            &.tag-expired {
+              background: rgba($text-tertiary, 0.1);
+              color: $text-tertiary;
+            }
+          }
+        }
+      }
+
+      .share-item-delete {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        @include flex-center;
+        border-radius: $radius-full;
+        color: $text-secondary;
+        cursor: pointer;
+        margin-left: $space-2;
+
+        &:hover {
+          background: rgba($color-danger, 0.1);
+          color: $color-danger;
+        }
+      }
+    }
+  }
+}
+
+.share-password-toggle {
+  position: absolute;
+  right: $space-3;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
 }
 </style>

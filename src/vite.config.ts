@@ -8,14 +8,14 @@ export default defineConfig({
   
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': __dirname
     }
   },
   
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@import "${resolve(__dirname, 'src/styles/variables').replace(/\\/g, '/')}"; @import "${resolve(__dirname, 'src/styles/mixins').replace(/\\/g, '/')}";`
+        additionalData: `@import "${resolve(__dirname, 'styles/variables').replace(/\\/g, '/')}"; @import "${resolve(__dirname, 'styles/mixins').replace(/\\/g, '/')}";`
       }
     }
   },
