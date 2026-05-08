@@ -41,7 +41,16 @@ if (!fs.existsSync(FILES_DB)) {
 
 // CORS配置
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || config.server?.allowed_origins || '*',
+  origin: function (origin, callback) {
+    const allowed = process.env.ALLOWED_ORIGINS?.split(',') || config.server?.allowed_origins;
+    if (!allowed || allowed === '*' || (Array.isArray(allowed) && allowed.includes('*'))) {
+      callback(null, true);
+    } else if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 };
 app.use(cors(corsOptions));

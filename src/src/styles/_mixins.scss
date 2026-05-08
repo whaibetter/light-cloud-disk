@@ -1,0 +1,71 @@
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin transition-all {
+  transition: all 0.3s ease;
+}
+
+@mixin transition-transform {
+  transition: transform 0.3s ease;
+}
+
+@mixin card-style {
+  background-color: #ffffff;
+  border-radius: $border-radius-base;
+  box-shadow: $box-shadow-light;
+}
+
+@mixin safe-area-bottom {
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@mixin safe-area-top {
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
+}
+
+@mixin button-reset {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+@mixin input-reset {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: inherit;
+}
