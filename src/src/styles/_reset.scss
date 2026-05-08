@@ -182,3 +182,10 @@ scroll-view {
 // 光标辅助类
 .cursor-pointer { cursor: pointer; }
 .cursor-default { cursor: default; }
+
+// 桌面端隐藏原生 tabBar
+@include respond-above('md') {
+  .uni-tabbar {
+    display: none !important;
+  }
+}

@@ -21,12 +21,12 @@ function getDefaultServerUrl(): string {
     return `${protocol}//${host}`
   }
   // #endif
-  return 'http://localhost:3000'
+  return 'http://117.72.196.45:12137'
 }
 
 const DEFAULTS = {
   SERVER_URL: getDefaultServerUrl(),
-  API_KEY: 'light-cloud-disk-2026',
+  API_KEY: '12138qwe',
   THEME: 'light',
   LANGUAGE: 'zh-CN',
   VIEW_MODE: 'list'
