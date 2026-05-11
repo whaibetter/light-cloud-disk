@@ -320,6 +320,191 @@ app.get('/api/files/:filename', authenticateAPIKey, (req, res) => {
   }
 });
 
+// ==================== 分享功能 ====================
+
+// 创建分享
+app.post('/api/share/:storedName', authenticateAPIKey, (req, res) => {
+  try {
+    const { storedName } = req.params;
+    const { password, expireHours } = req.body || {};
+
+    const filesDB = readFilesDB();
+    const fileInfo = filesDB.find(f => f.storedName === storedName);
+    if (!fileInfo) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+
+    if (!fileInfo.shares) fileInfo.shares = [];
+
+    const token = md5(storedName + Date.now() + Math.random()).substring(0, 16);
+    const share = {
+      token,
+      password: password ? md5(password) : '',
+      expireAt: expireHours ? new Date(Date.now() + expireHours * 3600000).toISOString() : null,
+      createdAt: new Date().toISOString()
+    };
+
+    fileInfo.shares.push(share);
+    writeFilesDB(filesDB);
+
+    res.json({ success: true, token, shareUrl: `/share?token=${token}` });
+  } catch (error) {
+    console.error('Create share error:', error);
+    res.status(500).json({ success: false, error: 'Failed to create share' });
+  }
+});
+
+// 获取文件的分享列表
+app.get('/api/shares/:storedName', authenticateAPIKey, (req, res) => {
+  try {
+    const { storedName } = req.params;
+    const filesDB = readFilesDB();
+    const fileInfo = filesDB.find(f => f.storedName === storedName);
+    if (!fileInfo) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+    res.json({ success: true, shares: fileInfo.shares || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to get shares' });
+  }
+});
+
+// 删除分享
+app.delete('/api/share/:token', authenticateAPIKey, (req, res) => {
+  try {
+    const { token } = req.params;
+    const filesDB = readFilesDB();
+    let found = false;
+
+    for (const file of filesDB) {
+      if (file.shares) {
+        const idx = file.shares.findIndex(s => s.token === token);
+        if (idx !== -1) {
+          file.shares.splice(idx, 1);
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Share not found' });
+    }
+
+    writeFilesDB(filesDB);
+    res.json({ success: true, message: 'Share deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to delete share' });
+  }
+});
+
+// 获取分享信息（公开，无需认证）
+app.get('/api/s/:token', (req, res) => {
+  try {
+    const { token } = req.params;
+    const filesDB = readFilesDB();
+
+    for (const file of filesDB) {
+      if (file.shares) {
+        const share = file.shares.find(s => s.token === token);
+        if (share) {
+          // 检查是否过期
+          if (share.expireAt && new Date(share.expireAt) < new Date()) {
+            return res.status(410).json({ success: false, error: 'Share link has expired' });
+          }
+          return res.json({
+            success: true,
+            needPassword: !!share.password,
+            downloadReady: !share.password,
+            fileName: file.originalName,
+            fileSize: file.size,
+            mimetype: file.mimetype
+          });
+        }
+      }
+    }
+
+    res.status(404).json({ success: false, error: 'Share not found' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to get share info' });
+  }
+});
+
+// 验证分享密码（公开，无需认证）
+app.post('/api/s/:token/verify', (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body || {};
+    const filesDB = readFilesDB();
+
+    for (const file of filesDB) {
+      if (file.shares) {
+        const share = file.shares.find(s => s.token === token);
+        if (share) {
+          if (share.expireAt && new Date(share.expireAt) < new Date()) {
+            return res.status(410).json({ success: false, error: 'Share link has expired' });
+          }
+          if (share.password && share.password !== md5(password || '')) {
+            return res.status(401).json({ success: false, error: 'Invalid password' });
+          }
+          return res.json({
+            success: true,
+            downloadReady: true,
+            fileName: file.originalName,
+            fileSize: file.size,
+            mimetype: file.mimetype
+          });
+        }
+      }
+    }
+
+    res.status(404).json({ success: false, error: 'Share not found' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to verify password' });
+  }
+});
+
+// 下载分享文件（公开，无需认证）
+app.get('/api/s/:token/download', (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.query;
+    const filesDB = readFilesDB();
+
+    for (const file of filesDB) {
+      if (file.shares) {
+        const share = file.shares.find(s => s.token === token);
+        if (share) {
+          // 检查过期
+          if (share.expireAt && new Date(share.expireAt) < new Date()) {
+            return res.status(410).json({ success: false, error: 'Share link has expired' });
+          }
+          // 检查密码
+          if (share.password && share.password !== md5(password || '')) {
+            return res.status(401).json({ success: false, error: 'Invalid password' });
+          }
+
+          const filePath = path.join(UPLOAD_DIR, file.storedName);
+          if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ success: false, error: 'File not found on disk' });
+          }
+
+          const encodedName = encodeURIComponent(file.originalName);
+          res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedName}`);
+          res.setHeader('Content-Type', file.mimetype || 'application/octet-stream');
+          fs.createReadStream(filePath).pipe(res);
+          return;
+        }
+      }
+    }
+
+    res.status(404).json({ success: false, error: 'Share not found' });
+  } catch (error) {
+    console.error('Share download error:', error);
+    res.status(500).json({ success: false, error: 'Failed to download' });
+  }
+});
+
 // 错误处理中间件
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

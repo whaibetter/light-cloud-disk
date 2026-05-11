@@ -1,0 +1,12 @@
+{
+  "appid": "__UNI__14104B9",
+  "project": "src",
+  "platform": "android",
+  "android": {
+    "packagename": "com.lightclouddisk.app",
+    "androidpacktype": 1
+  },
+  "safemode": false,
+  "sourceMap": false,
+  "isconfusion": false
+}

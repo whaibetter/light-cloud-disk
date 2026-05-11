@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicoulaj/tauri-config-schema/main/tauri-conf-2.schema.json",
+  "productName": "轻量云盘",
+  "version": "3.0.0",
+  "identifier": "com.lightclouddisk.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "轻量云盘",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 375,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    },
+    "longDescription": "轻量云盘 - 基于 Tauri 2.0 的跨平台云盘客户端，支持 Web、Android、iOS、桌面端",
+    "shortDescription": "轻量云盘客户端",
+    "linux": {
+      "deb": {
+        "desktopTemplate": null
+      }
+    },
+    "macOS": {},
+    "android": {
+      "minSdkVersion": 24,
+      "targets": ["aarch64", "armv7", "i686", "x86_64"]
+    }
+  },
+  "plugins": {
+    "store": {
+      "stores": ["config.json"]
+    },
+    "http": {
+      "enabled": true
+    },
+    "dialog": {
+      "enabled": true
+    },
+    "fs": {
+      "enabled": true,
+      "scope": {
+        "allow": ["**"],
+        "deny": []
+      }
+    },
+    "shell": {
+      "enabled": true,
+      "scope": []
+    }
+  }
+}

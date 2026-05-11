@@ -1,0 +1,98 @@
+// ============================================
+// CSS 重置 + 主题变量
+// ============================================
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+input, textarea {
+  font: inherit;
+  outline: none;
+}
+
+// ==================== 浅色模式变量 ====================
+
+:root {
+  --bg-page: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-sunken: #F3F4F6;
+  --bg-input: #F3F4F6;
+  --bg-hover: #F3F4F6;
+
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+  --text-inverse: #FFFFFF;
+
+  --border-default: #E5E7EB;
+  --border-subtle: #F3F4F6;
+
+  --brand-primary: #4F46E5;
+  --brand-gradient: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #06B6D4 100%);
+}
+
+// ==================== 深色模式变量 ====================
+
+[data-theme="dark"],
+.theme-dark {
+  --bg-page: #111827;
+  --bg-card: #1F2937;
+  --bg-elevated: #374151;
+  --bg-sunken: #1F2937;
+  --bg-input: #374151;
+  --bg-hover: #374151;
+
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --text-tertiary: #6B7280;
+  --text-inverse: #111827;
+
+  --border-default: #374151;
+  --border-subtle: #1F2937;
+}
+
+// ==================== 选择样式 ====================
+
+::selection {
+  background: rgba(79, 70, 229, 0.2);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
