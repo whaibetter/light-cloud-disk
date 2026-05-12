@@ -1,104 +1,33 @@
 {
-  "name": "light-cloud-disk",
-  "appid": "__UNI__LIGHTCLOUD",
-  "description": "轻量云盘 - 跨平台文件管理应用",
-  "versionName": "2.0.0",
-  "versionCode": "200",
-  "transformPx": false,
-  "networkTimeout": {
-    "request": 30000,
-    "connectSocket": 30000,
-    "uploadFile": 30000,
-    "downloadFile": 30000
-  },
-  "debug": false,
-  "uniStatistics": {
-    "enable": false
-  },
-  "app-plus": {
-    "usingComponents": true,
-    "nvueStyleCompiler": "uni-app",
-    "compilerVersion": 3,
-    "splashscreen": {
-      "alwaysShowBeforeRender": true,
-      "waiting": true,
-      "autoclose": true,
-      "delay": 0
-    },
-    "modules": {
-      "Camera": {},
-      "Gallery": {},
-      "Download": {},
-      "Geolocation": {}
-    },
-    "distribute": {
-      "android": {
-        "permissions": [
-          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
-          "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
-          "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
-          "<uses-permission android:name=\"android.permission.CAMERA\"/>",
-          "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
-          "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
-          "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\"/>",
-          "<uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_DATA_SYNC\"/>"
-        ],
-        "minSdkVersion": 21,
-        "targetSdkVersion": 34,
-        "abiFilters": ["armeabi-v7a", "arm64-v8a", "x86"]
-      },
-      "ios": {
-        "dSYBs": false,
-        "idfa": false
-      },
-      "sdkConfigs": {}
-    }
-  },
-  "quickapp": {},
-  "mp-weixin": {
-    "appid": "",
-    "setting": {
-      "urlCheck": false,
-      "es6": true,
-      "minified": true,
-      "postcss": true
-    },
-    "usingComponents": true,
-    "permission": {
-      "scope.camera": {
-        "desc": "用于拍照上传文件"
-      },
-      "scope.writePhotosAlbum": {
-        "desc": "用于保存下载的文件"
-      }
-    },
-    "requiredPrivateInfos": ["chooseImage", "chooseVideo"]
-  },
-  "h5": {
-    "template": "index.html",
-    "router": {
-      "mode": "hash",
-      "base": "/cloud/"
-    },
-    "optimization": {
-      "treeShaking": {
-        "enable": true
-      }
-    },
-    "devServer": {
-      "port": 5173,
-      "https": false,
-      "proxy": {
-        "/api": {
-          "target": "http://localhost:3000",
-          "changeOrigin": true,
-          "secure": false
+    "name": "light-cloud-disk",
+    "appid": "__UNI__14104B9",
+    "description": "轻量云盘",
+    "versionName": "2.0.0",
+    "versionCode": "200",
+    "transformPx": false,
+    "app-plus": {
+        "usingComponents": true,
+        "splashscreen": {
+            "alwaysShowBeforeRender": true,
+            "waiting": true,
+            "autoclose": true,
+            "delay": 0
+        },
+        "distribute": {
+            "android": {
+                "permissions": [
+                    "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
+                    "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>"
+                ],
+                "minSdkVersion": 21,
+                "targetSdkVersion": 34,
+                "abiFilters": ["armeabi-v7a", "arm64-v8a"]
+            },
+            "ios": {}
         }
-      }
     },
-    "title": "轻量云盘",
-    "sdkConfigs": {
-      "maps": {}
+    "h5": {
+        "title": "轻量云盘"
     }
-  }
 }

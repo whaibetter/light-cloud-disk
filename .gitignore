@@ -31,6 +31,17 @@ uploads/
 
 # Config files with secrets
 config.json
+pack-config.json
+
+# Signing keys
+*.jks
+*.keystore
+
+# Build artifacts
+*.wgt
+
+# Cordova build outputs
+cordova-app/www/
 
 # OS
 Thumbs.db

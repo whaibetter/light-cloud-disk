@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { computed, watch, onMounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onLaunch } from '@dcloudio/uni-app'
 import { useConfigStore } from '@/stores'
 
 const configStore = useConfigStore()
@@ -25,6 +25,20 @@ function applyTheme(theme: string) {
   // #endif
 }
 
+// 处理分享文件
+function handleShareFiles() {
+  // #ifdef APP-PLUS
+  const args = plus.runtime.arguments
+  if (args) {
+    console.log('收到分享参数:', args)
+    // 解析分享的文件并跳转到上传页面
+    uni.navigateTo({
+      url: '/pages/index/index?share=true&args=' + encodeURIComponent(args)
+    })
+  }
+  // #endif
+}
+
 // 监听主题变化
 watch(() => configStore.theme, (newTheme) => {
   applyTheme(newTheme)
@@ -32,6 +46,10 @@ watch(() => configStore.theme, (newTheme) => {
 
 onMounted(() => {
   applyTheme(configStore.theme)
+})
+
+onLaunch(() => {
+  handleShareFiles()
 })
 
 onShow(() => {

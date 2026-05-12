@@ -2,6 +2,7 @@
 
 > 变更记录 (Changelog)
 > - 2026-05-10 21:26:03: 全仓扫描更新，刷新模块文档，更新 Mermaid 结构图和覆盖率报告
+> - 2026-05-09: 添加 Android APK 打包指南、常见问题排查（CORS 双重 Header、HBuilderX CLI 问题）
 
 ## 项目愿景
 
@@ -163,6 +164,34 @@ Nginx 配置参考 `nginx-syncqclous.conf`，前端路径 `/syncqclous`，API �
 6. **主题系统**: SCSS 变量 + CSS 变量双层架构，`var(--xxx, fallback)` 实现运行时主题切换
 7. **构建系统双轨制** (src): Vite (CLI) 和 Vue CLI (HBuilderX) 并存
 
+## Android APK 打包
+
+推荐使用 uni-app CLI 构建 Android 资源，然后用 HBuilderX GUI 云打包：
+
+```bash
+cd src
+node node_modules/@dcloudio/vite-plugin-uni/bin/uni.js build -p app-android
+```
+
+构建产物在 `src/dist/build/app/`，可打包为 `.wgt` 热更新资源。
+
+**HBuilderX CLI 打包注意事项：**
+- AppID 需在 [DCloud 开发者中心](https://dev.dcloud.net.cn) 创建，格式 `__UNI__XXXXXXX`
+- 自签名证书：`keytool -genkey -v -keystore release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias <alias>`
+- HBuilderX CLI 有已知的编译器模块缺失问题，GUI 云打包更稳定
+
+**Android 文件分享（Share Intent）：**
+- `manifest.json` 已配置 `SEND` / `SEND_MULTIPLE` intentFilters
+- `App.vue` 的 `onLaunch` 中通过 `plus.runtime.arguments` 接收分享文件并跳转上传页
+
+## 常见问题排查
+
+**CORS 双重 Header 问题：**
+如果 Nginx 和 Express 同时设置 CORS 头，浏览器会报 `The 'Access-Control-Allow-Origin' header contains multiple values`。解决：从 Nginx 配置中移除 `add_header Access-Control-*` 指令，让 Express 单独处理 CORS。参考 `nginx-syncqclous.conf`。
+
+**HBuilderX CLI "编译失败"/"缺少编译器模块"：**
+HBuilderX CLI 的依赖检查逻辑与 npm 不一致。如遇此问题，使用 GUI 云打包或直接用 uni-app CLI 构建。
+
 ## AI 使用指引
 
 - 修改后端 API 时，同步更新 `docs/api.md` 和前端的 `api/types.ts`
@@ -192,3 +221,4 @@ Nginx 配置参考 `nginx-syncqclous.conf`，前端路径 `/syncqclous`，API �
 |------|------|
 | 2026-05-10 21:26:03 | 全仓扫描更新：刷新模块文档，更新覆盖率报告，确认无自动化测试 |
 | 2026-05-10 | 初始化项目 AI 上下文：生成根/模块 CLAUDE.md，创建 .claude/index.json |
+| 2026-05-09 | 添加 Android APK 打包指南、CORS 排查、HBuilderX CLI 问题说明 |
